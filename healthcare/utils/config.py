@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2023 Yuma Rao
-# Copyright © 2023 Opentensor Foundation
+# Copyright © 2023 demon
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -29,7 +29,7 @@ def check_config(cls, config: "bt.Config"):
 
     full_path = os.path.expanduser(
         "{}/{}/{}/netuid{}/{}".format(
-            config.logging.logging_dir,  # TODO: change from ~/.bittensor/miners to ~/.bittensor/neurons
+            config.logging.logging_dir,
             config.wallet.name,
             config.wallet.hotkey,
             config.netuid,
@@ -108,6 +108,20 @@ def add_args(cls, parser):
             type=int,
             help="The number of concurrent forwards running at any time.",
             default=1,
+        )
+        
+        parser.add_argument(
+            "--neuron.query_time",
+            type=int,
+            help="The number of steps for a single query.",
+            default=5,
+        )
+        
+        parser.add_argument(
+            "--neuron.score_update_time",
+            type=int,
+            help="The number of steps for a single score update.",
+            default=10,
         )
 
         parser.add_argument(
