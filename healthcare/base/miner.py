@@ -25,6 +25,7 @@ import traceback
 import bittensor as bt
 
 from healthcare.base.neuron import BaseNeuron
+from healthcare.miner.model import ModelTrainer
 
 
 class BaseMinerNeuron(BaseNeuron):
@@ -96,11 +97,13 @@ class BaseMinerNeuron(BaseNeuron):
         )
         self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
 
-        # Start  starts the miner's axon, making it active on the network.
+        # Starts the miner's axon, making it active on the network.
         self.axon.start()
 
         bt.logging.info(f"Miner starting at block: {self.block}")
 
+        # Starts the background thread for training the model
+        self.__enter__()
         # This loop maintains the miner's operations until intentionally stopped.
         try:
             while not self.should_exit:
@@ -131,27 +134,28 @@ class BaseMinerNeuron(BaseNeuron):
 
     def run_in_background_thread(self):
         """
-        Starts the miner's operations in a separate background thread.
+        Starts the model training in a separate background thread.
         This is useful for non-blocking operations.
         """
+        trainer = ModelTrainer()
         if not self.is_running:
-            bt.logging.debug("Starting miner in background thread.")
+            bt.logging.debug("Starting model training in background thread.")
             self.should_exit = False
-            self.thread = threading.Thread(target=self.run, daemon=True)
+            self.thread = threading.Thread(target=trainer.train, daemon=True)
             self.thread.start()
             self.is_running = True
-            bt.logging.debug("Started")
+            bt.logging.debug("Started the model training")
 
     def stop_run_thread(self):
         """
-        Stops the miner's operations that are running in the background thread.
+        Stops the model training that are running in the background thread.
         """
         if self.is_running:
-            bt.logging.debug("Stopping miner in background thread.")
+            bt.logging.debug("Stopping the model training in background thread.")
             self.should_exit = True
             self.thread.join(5)
             self.is_running = False
-            bt.logging.debug("Stopped")
+            bt.logging.debug("Stopped the model training")
 
     def __enter__(self):
         """

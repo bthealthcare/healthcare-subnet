@@ -22,6 +22,7 @@ import bittensor as bt
 
 # Healthcare Miner:
 import healthcare
+from healthcare.miner import i2t
 
 # import base miner class which takes care of most of the boilerplate
 from healthcare.base.miner import BaseMinerNeuron
@@ -55,7 +56,7 @@ class Miner(BaseMinerNeuron):
         The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
-        synapse.output_text = "ABC"
+        synapse.output_text = i2t(synapse)
         return synapse
 
     async def blacklist(

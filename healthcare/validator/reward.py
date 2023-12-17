@@ -21,7 +21,7 @@ from typing import List
 from healthcare.validator.bleu_score import get_bleu_score
 
 
-def reward(query: str, response: str) -> float:
+def reward(recommended: str, response: str) -> float:
     """
     Reward the miner response to the predict request. This method returns a reward
     value for the miner, which is used to update the miner's score.
@@ -29,15 +29,15 @@ def reward(query: str, response: str) -> float:
     Returns:
     - float: The reward value for the miner.
     """
-    print(f"reward : {query}, {response}")
+    print(f"{recommended}, {response}")
 
-    bleu_score = get_bleu_score(query, response)
+    bleu_score = get_bleu_score(recommended, response)
     return bleu_score
 
 
 def get_rewards(
     self,
-    query: str,
+    recommended: str,
     responses: List[str],
 ) -> torch.FloatTensor:
     """
@@ -52,5 +52,5 @@ def get_rewards(
     """
     # Get all the reward results by iteratively calling your reward() function.
     return torch.FloatTensor(
-        [reward(query, response) for response in responses]
+        [reward(recommended, response) for response in responses]
     ).to(self.device)
