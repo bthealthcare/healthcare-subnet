@@ -158,12 +158,13 @@ class BaseNeuron(ABC):
             self.block - self.metagraph.last_update[self.uid]
         ) > self.config.neuron.epoch_length
 
+    # MISSING
     def save_state(self):
-        bt.logging.warning(
+        bt.logging.trace(
             "save_state() not implemented for this neuron. You can implement this function to save model checkpoints or other useful data."
         )
 
     def load_state(self):
-        bt.logging.warning(
+        bt.logging.trace(
             "load_state() not implemented for this neuron. You can implement this function to load model checkpoints or other useful data."
         )

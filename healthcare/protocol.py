@@ -18,6 +18,8 @@
 
 import typing
 import bittensor as bt
+import torch
+import pydantic
 
 class Predict(bt.Synapse):
     """
@@ -30,7 +32,7 @@ class Predict(bt.Synapse):
     """
 
     # Required request input, filled by sending dendrite caller.
-    input_image: list[ bt.Tensor ] = []
+    input_image: str = ""
 
     # Optional request output, filled by recieving axon.
     output_text: typing.Optional[str] = ""

@@ -177,7 +177,6 @@ def add_args(cls, parser):
             default=False,
         )
 
-
 def config(cls):
     """
     Returns the configuration object specific to this miner or validator after adding relevant arguments.
