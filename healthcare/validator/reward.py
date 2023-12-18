@@ -18,7 +18,6 @@
 
 import torch
 from typing import List
-from healthcare.validator.bleu_score import get_bleu_score
 
 
 def reward(recommended: str, response: str) -> float:
@@ -29,10 +28,15 @@ def reward(recommended: str, response: str) -> float:
     Returns:
     - float: The reward value for the miner.
     """
-    print(f"{recommended}, {response}")
+    recommended_labels = set(recommended.split('|'))
+    response_labels = set(response.split('|'))
 
-    bleu_score = get_bleu_score(recommended, response)
-    return bleu_score
+    # Find the intersection (common elements) between the sets
+    common_labels = recommended_labels.intersection(response_labels)
+    common_labels_count = len(common_labels)
+
+    # Return the count of common elements
+    return common_labels_count * common_labels_count / len(recommended_labels) / len(response_labels)
 
 
 def get_rewards(
