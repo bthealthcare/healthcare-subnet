@@ -64,7 +64,7 @@ async def forward(self):
     img_base64 = base64.b64encode(img_byte)
     img_str = img_base64.decode()
 
-    recommended_response = "I go to school"
+    recommended_response = "Cardiomegaly"
 
     # The dendrite client queries the network.
     responses = self.dendrite.query(

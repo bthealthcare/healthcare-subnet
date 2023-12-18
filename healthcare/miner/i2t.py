@@ -22,6 +22,8 @@ from PIL import Image
 import numpy as np
 import pandas as pd
 import os
+import base64
+from io import BytesIO
 
 import healthcare
 from constant import Constant
@@ -29,16 +31,18 @@ from constant import Constant
 # Preprocess an image
 def preprocess_image(pil_img, target_size=(224, 224)):
     # Resize the image
-    img = pil_img.resize(target_size)
+    resized_img = pil_img.resize(target_size)
+
+    # Convert to RGB if not already in RGB mode
+    if resized_img.mode != 'RGB':
+        resized_img = resized_img.convert('RGB')
 
     # Convert the PIL image to a numpy array
-    img_array = image.img_to_array(img)
+    img_array = np.array(resized_img)
 
-    # Expand dimensions to fit the model input format (batch_size, height, width, channels)
     img_array = np.expand_dims(img_array, axis=0)
-
-    # Normalize the image pixels to the range 0-1
-    img_array /= 255.0
+    
+    img_array = img_array / 255.0
 
     return img_array
 
@@ -67,7 +71,7 @@ def i2t(synapse: healthcare.protocol.Predict) -> str:
 
     # Load labels from Data_Entry
     df = pd.read_csv(Constant.BASE_DIR + '/healthcare/dataset/miner/Data_Entry.csv')
-    label_map = {label: idx for idx, label in enumerate(df['Finding_Labels'].unique())}
+    label_map = [label for idx, label in enumerate(df['Finding_Labels'].unique())]
 
     # Get the predicted label name
     predictions = model.predict(processed_image)

@@ -57,6 +57,8 @@ def check_config(cls, config: "bt.Config"):
 
 
 def add_args(cls, parser):
+    if "BaseNeuron" in cls.__name__:
+        return
     """
     Adds relevant arguments to the parser for operation.
     """
@@ -175,6 +177,20 @@ def add_args(cls, parser):
             action="store_true",
             help="If set, miners will accept queries from non registered entities. (Dangerous!)",
             default=False,
+        )
+
+        parser.add_argument(
+            "--num_epochs", 
+            type = int, 
+            default = 10, 
+            help="Number of training epochs (-1 is infinite)"
+        )
+
+        parser.add_argument(
+            "--batch_size", 
+            type = int, 
+            default = 32, 
+            help="The batch size"
         )
 
 def config(cls):

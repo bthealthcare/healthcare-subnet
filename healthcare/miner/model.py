@@ -16,19 +16,24 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import os
 import pandas as pd
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.models import Sequential
+from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 from sklearn.model_selection import train_test_split
 
 from constant import Constant
 
+
 class ModelTrainer:
+    def __init__(self, config):
+        self.config = config
+
     def preprocess_image(self, img_array, target_size=(224, 224)):
         # Resize the image using NumPy's resize. Note: np.resize and PIL's resize behave differently.
         img_array = np.array(image.smart_resize(img_array, target_size))
@@ -46,8 +51,10 @@ class ModelTrainer:
         dataframe = pd.read_csv(Constant.BASE_DIR + '/healthcare/dataset/miner/Data_Entry.csv')
 
         # Split data into train, validation, and test sets
-        train_df, test_df = train_test_split(dataframe, test_size=0.2)
-        train_df, val_df = train_test_split(train_df, test_size=0.25)  # 0.25 x 0.8 = 0.2
+        # train_df, test_df = train_test_split(dataframe, test_size=0.2)
+        # train_df, val_df = train_test_split(train_df, test_size=0.25)  # 0.25 x 0.8 = 0.2
+        train_df = dataframe
+        val_df = dataframe
 
         train_image_paths = train_df['Image_Index'].values
         train_labels = train_df['Finding_Labels'].values
@@ -66,7 +73,7 @@ class ModelTrainer:
             y_col='Finding_Labels',
             class_mode='categorical',  # or 'binary' for binary labels
             target_size=(224, 224),
-            batch_size=32
+            batch_size=self.config.batch_size
         )
 
         val_generator = val_datagen.flow_from_dataframe(
@@ -76,12 +83,19 @@ class ModelTrainer:
             y_col='Finding_Labels',
             class_mode='categorical',
             target_size=(224, 224),
-            batch_size=32
+            batch_size=self.config.batch_size
         )
         num_classes = len(train_generator.class_indices)
         return train_generator, val_generator, train_df, val_df, num_classes
 
-    def load_model(self, num_classes):
+    def get_model(self, num_classes):
+        model_file_path = Constant.BASE_DIR + '/healthcare/models/model_checkpoint.h5'
+        
+        # Check if model exists
+        if os.path.exists(model_file_path):
+            model = load_model(model_file_path)
+            return model
+        
         model = Sequential([
             Conv2D(32, (3, 3), activation='relu', input_shape=(224, 224, 3)),
             MaxPooling2D(2, 2),
@@ -97,8 +111,9 @@ class ModelTrainer:
         return model
 
     def train(self):
+        print("started training")
         train_generator, val_generator, train_df, val_df, num_classes = self.load_dataframe()
-        model = self.load_model(num_classes)
+        model = self.get_model(num_classes)
         checkpoint = ModelCheckpoint(
             filepath=Constant.BASE_DIR + '/healthcare/models/model_checkpoint.h5', 
             monitor='val_loss', 
@@ -109,7 +124,7 @@ class ModelTrainer:
         history = model.fit(
             train_generator,
             steps_per_epoch=len(train_df) // 32,  # Adjust based on your batch size
-            epochs=10,  # Number of epochs
+            epochs=self.config.num_epochs,  # Number of epochs
             validation_data=val_generator,
             validation_steps=len(val_df) // 32,
             callbacks=[checkpoint]
