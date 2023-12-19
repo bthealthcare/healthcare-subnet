@@ -20,21 +20,42 @@ import os
 import pandas as pd
 import numpy as np
 import tensorflow as tf
+from tensorflow.keras.callbacks import Callback
+
 from tensorflow.keras.preprocessing import image
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.preprocessing.image import load_img, img_to_array
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MultiLabelBinarizer
 
+import bittensor as bt
 from constant import Constant
 
+class CustomModelCheckpoint(Callback):
+    def __init__(self, model, path, save_freq):
+        super(CustomModelCheckpoint, self).__init__()
+        self.model = model
+        self.path = path
+        self.save_freq = save_freq
+        self.batch_counter = 0
+
+    def on_batch_end(self, batch, logs=None):
+        self.batch_counter += 1
+        if self.batch_counter % self.save_freq == 0:
+            self.model.save(os.path.join(self.path, 'best_model.h5'.format(self.batch_counter)))
+            bt.logging.info(f"\nModel saved at batch {self.batch_counter}")
 
 class ModelTrainer:
     def __init__(self, config):
         self.config = config
 
-    def preprocess_image(self, img_array, target_size=(224, 224)):
+    def load_and_preprocess_image(self, image_path, target_size=(224, 224)):
+        # Load image
+        img = load_img(image_path, target_size=target_size)
+        img_array = img_to_array(img)
+
         # Resize the image using NumPy's resize. Note: np.resize and PIL's resize behave differently.
         img_array = np.array(image.smart_resize(img_array, target_size))
 
@@ -42,57 +63,51 @@ class ModelTrainer:
         img_array = img_array / 255.0
 
         # Expand dimensions to fit the model input format
-        img_array = np.expand_dims(img_array, axis=0)
+        # img_array = np.expand_dims(img_array, axis=0)
 
         return img_array
+
+    def generate_data(self, image_paths, labels, batch_size):
+        num_samples = len(image_paths)
+        while True:
+            for offset in range(0, num_samples, batch_size):
+                batch_images = []
+                batch_labels = labels[offset:offset+batch_size]
+                for img_path in image_paths[offset:offset+batch_size]:
+                    absolute_path = Constant.BASE_DIR + '/healthcare/dataset/miner/images/' + img_path
+                    if not os.path.exists(absolute_path):
+                        continue
+                    img = self.load_and_preprocess_image(absolute_path)
+                    batch_images.append(img)
+                yield np.array(batch_images), np.array(batch_labels)
 
     def load_dataframe(self):
         # Load CSV file
         dataframe = pd.read_csv(Constant.BASE_DIR + '/healthcare/dataset/miner/Data_Entry.csv')
+        
+        # Filter out rows where the file does not exist
+        dataframe['file_exists'] = dataframe['image_name'].apply(lambda x: os.path.exists(Constant.BASE_DIR + '/healthcare/dataset/miner/images/' + x))
+        dataframe = dataframe[dataframe['file_exists']]
+        dataframe = dataframe.drop(columns=['file_exists'])
 
-        # Split data into train, validation, and test sets
-        # train_df, test_df = train_test_split(dataframe, test_size=0.2)
-        # train_df, val_df = train_test_split(train_df, test_size=0.25)  # 0.25 x 0.8 = 0.2
-        train_df = dataframe
-        val_df = dataframe
+        # Preprocess image names and labels of dataframe
+        dataframe['label'] = dataframe['label'].apply(lambda x: x.split('|'))
+        mlb = MultiLabelBinarizer()
+        binary_labels = mlb.fit_transform(dataframe['label'])
+        
+        image_paths = dataframe['image_name'].values
 
-        train_image_paths = train_df['Image_Index'].values
-        train_labels = train_df['Finding_Labels'].values
+        train_gen = self.generate_data(image_paths, binary_labels, self.config.batch_size)
 
-        val_image_paths = val_df['Image_Index'].values
-        val_labels = val_df['Finding_Labels'].values
+        num_classes = binary_labels.shape[1]
 
-        train_datagen = ImageDataGenerator(preprocessing_function=self.preprocess_image)
-        val_datagen = ImageDataGenerator(preprocessing_function=self.preprocess_image)
-
-        path_to_image_directory = Constant.BASE_DIR + '/healthcare/dataset/miner/images'
-        train_generator = train_datagen.flow_from_dataframe(
-            dataframe=train_df,
-            directory=path_to_image_directory,
-            x_col='Image_Index',
-            y_col='Finding_Labels',
-            class_mode='categorical',  # or 'binary' for binary labels
-            target_size=(224, 224),
-            batch_size=self.config.batch_size
-        )
-
-        val_generator = val_datagen.flow_from_dataframe(
-            dataframe=val_df,
-            directory=path_to_image_directory,
-            x_col='Image_Index',
-            y_col='Finding_Labels',
-            class_mode='categorical',
-            target_size=(224, 224),
-            batch_size=self.config.batch_size
-        )
-        num_classes = len(train_generator.class_indices)
-        return train_generator, val_generator, train_df, val_df, num_classes
+        return train_gen, dataframe, num_classes
 
     def get_model(self, num_classes):
-        model_file_path = Constant.BASE_DIR + '/healthcare/models/model_checkpoint.h5'
+        model_file_path = Constant.BASE_DIR + '/healthcare/models/best_model.h5'
         
         # Check if model exists
-        if os.path.exists(model_file_path):
+        if self.config.restart == False and os.path.exists(model_file_path):
             model = load_model(model_file_path)
             return model
         
@@ -111,21 +126,24 @@ class ModelTrainer:
         return model
 
     def train(self):
-        print("started training")
-        train_generator, val_generator, train_df, val_df, num_classes = self.load_dataframe()
+        bt.logging.info("started training")
+        train_generator, train_df, num_classes = self.load_dataframe()
         model = self.get_model(num_classes)
-        checkpoint = ModelCheckpoint(
-            filepath=Constant.BASE_DIR + '/healthcare/models/model_checkpoint.h5', 
-            monitor='val_loss', 
-            verbose=1, 
-            save_best_only=True, 
-            mode='auto'
+        # checkpoint = ModelCheckpoint(
+        #     filepath=Constant.BASE_DIR + '/healthcare/models/best_model.h5', 
+        #     monitor='val_loss', 
+        #     verbose=1, 
+        #     save_best_only=True, 
+        #     mode='auto'
+        # )
+        custom_checkpoint = CustomModelCheckpoint(
+            model,
+            path=Constant.BASE_DIR + '/healthcare/models/',
+            save_freq=30  # Change this to your preferred frequency
         )
         history = model.fit(
             train_generator,
-            steps_per_epoch=len(train_df) // 32,  # Adjust based on your batch size
+            steps_per_epoch=len(train_df) // self.config.batch_size,  # Adjust based on your batch size
             epochs=self.config.num_epochs,  # Number of epochs
-            validation_data=val_generator,
-            validation_steps=len(val_df) // 32,
-            callbacks=[checkpoint]
+            callbacks=[custom_checkpoint]
         )

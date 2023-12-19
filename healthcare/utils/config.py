@@ -36,7 +36,6 @@ def check_config(cls, config: "bt.Config"):
             config.neuron.name,
         )
     )
-    print("full path:", full_path)
     config.neuron.full_path = os.path.expanduser(full_path)
     if not os.path.exists(config.neuron.full_path):
         os.makedirs(config.neuron.full_path, exist_ok=True)
@@ -116,7 +115,7 @@ def add_args(cls, parser):
             "--neuron.query_time",
             type=int,
             help="The number of steps for a single query.",
-            default=5,
+            default=2,
         )
         
         parser.add_argument(
@@ -191,6 +190,18 @@ def add_args(cls, parser):
             type = int, 
             default = 32, 
             help="The batch size"
+        )
+
+        parser.add_argument(
+            "--restart",
+            default = True, 
+            help="If set miners will start the training from scratch."
+        )
+
+        parser.add_argument(
+            "--threshold",
+            default = 0.5,
+            help="The predefined cutoff value that is used to determine which labels should be selected based on their corresponding scores."
         )
 
 def config(cls):
