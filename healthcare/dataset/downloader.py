@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 # Download the 56 zip files in Images_png in batches
 import urllib.request
+import tarfile
+import os
+
+import bittensor as bt
+from constant import Constant
 
 # URLs for the zip files
 links = [
@@ -18,9 +23,18 @@ links = [
 	'https://nihcc.box.com/shared/static/ioqwiy20ihqwyr8pf4c24eazhh281pbu.gz'
 ]
 
+# Directory where you want to extract files
+parent_dir = Constant.BASE_DIR + '/healthcare/dataset'
+extract_to_dir = parent_dir + "/miner"
+
 for idx, link in enumerate(links):
-    fn = 'miner/images_%02d.tar.gz' % (idx+1)
-    print('downloading ... : ' + fn)
+    tar_file = 'images_%02d.tar.gz' % (idx+1)
+    fn = extract_to_dir + '/images_%02d.tar.gz' % (idx+1)
+    bt.logging.info('downloading ... : ' + tar_file)
     urllib.request.urlretrieve(link, fn)  # download the zip file
 
-print("Download complete. Please check the checksums")
+    bt.logging.info(f"extracting ... : {tar_file}")
+    with tarfile.open(parent_dir + '/miner/' + tar_file, 'r:gz') as tar:
+        tar.extractall(path=extract_to_dir)
+
+bt.logging.info("Download complete. Please check the checksums")

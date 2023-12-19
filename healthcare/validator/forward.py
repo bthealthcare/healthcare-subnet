@@ -50,7 +50,7 @@ async def forward(self):
 
     # Define input_image and recommended response
     # Load the image
-    image = Image.open(Constant.BASE_DIR + "/healthcare/dataset/validator/test.png")
+    image = Image.open(Constant.BASE_DIR + "/healthcare/dataset/miner/images/00000001_000.png")
 
     # Detect the image format
     image_format = image.format
@@ -64,7 +64,7 @@ async def forward(self):
     img_base64 = base64.b64encode(img_byte)
     img_str = img_base64.decode()
 
-    recommended_response = "Cardiomegaly"
+    recommended_response = "Cardiomegaly|Emphysema"
 
     # The dendrite client queries the network.
     responses = self.dendrite.query(
