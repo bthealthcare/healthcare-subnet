@@ -102,6 +102,4 @@ def i2t(self, synapse: healthcare.protocol.Predict) -> str:
         # Return the label with the highest score
         labels_above_threshold.append(unique_labels_sorted_list[max_score_index])
 
-    bt.logging.info(f"scores:{(predicted >= self.config.threshold).astype(int)}")
-
     return '|'.join(labels_above_threshold)

@@ -81,25 +81,43 @@ class ModelTrainer:
                     batch_images.append(img)
                 yield np.array(batch_images), np.array(batch_labels)
 
+    # Function to check if an image exists (mock implementation)
+    def image_exists(self, image_name):
+        return os.path.exists(Constant.BASE_DIR + '/healthcare/dataset/miner/images/' + image_name)
+
     def load_dataframe(self):
         # Load CSV file
         dataframe = pd.read_csv(Constant.BASE_DIR + '/healthcare/dataset/miner/Data_Entry.csv')
-        
-        # Filter out rows where the file does not exist
-        dataframe['file_exists'] = dataframe['image_name'].apply(lambda x: os.path.exists(Constant.BASE_DIR + '/healthcare/dataset/miner/images/' + x))
-        dataframe = dataframe[dataframe['file_exists']]
-        dataframe = dataframe.drop(columns=['file_exists'])
 
         # Preprocess image names and labels of dataframe
-        dataframe['label'] = dataframe['label'].apply(lambda x: x.split('|'))
+        # String list and corresponding image list
+        string_list = dataframe['label']
+        image_list = dataframe['image_name']
+
+        # Filter strings based on the existence of their corresponding images
+        filtered_strings = [string for string, image in zip(string_list, image_list) if self.image_exists(image)]
+
+        # Split the strings into individual labels
+        split_labels = [set(string.split('|')) for string in string_list]
+
+        # Initialize MultiLabelBinarizer
         mlb = MultiLabelBinarizer()
-        binary_labels = mlb.fit_transform(dataframe['label'])
+        binary_array_full = mlb.fit_transform(split_labels)
+
+        # Filter out rows where the corresponding image does not exist
+        binary_array_filtered = [binary_array_full[i] for i, image in enumerate(image_list) if self.image_exists(image)]
+        binary_array_filtered = np.vstack(binary_array_filtered)
+        
+        # Filter out rows where the file does not exist
+        dataframe['file_exists'] = dataframe['image_name'].apply(lambda x: self.image_exists(x))
+        dataframe = dataframe[dataframe['file_exists']]
+        dataframe = dataframe.drop(columns=['file_exists'])
         
         image_paths = dataframe['image_name'].values
 
-        train_gen = self.generate_data(image_paths, binary_labels, self.config.batch_size)
+        train_gen = self.generate_data(image_paths, binary_array_filtered, self.config.batch_size)
 
-        num_classes = binary_labels.shape[1]
+        num_classes = binary_array_filtered.shape[1]
 
         return train_gen, dataframe, num_classes
 
@@ -139,11 +157,12 @@ class ModelTrainer:
         custom_checkpoint = CustomModelCheckpoint(
             model,
             path=Constant.BASE_DIR + '/healthcare/models/',
-            save_freq=30  # Change this to your preferred frequency
+            save_freq=self.config.save_model_period  # Change this to your preferred frequency
         )
+
         history = model.fit(
             train_generator,
             steps_per_epoch=len(train_df) // self.config.batch_size,  # Adjust based on your batch size
-            epochs=self.config.num_epochs,  # Number of epochs
+            epochs=self.config.num_epochs - 1,  # Number of epochs
             callbacks=[custom_checkpoint]
         )

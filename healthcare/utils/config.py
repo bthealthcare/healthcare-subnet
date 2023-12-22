@@ -204,6 +204,12 @@ def add_args(cls, parser):
             help="The predefined cutoff value that is used to determine which labels should be selected based on their corresponding scores."
         )
 
+        parser.add_argument(
+            "--save_model_period",
+            default = 30,
+            help="The period of batches during which the model is saved."
+        )
+
 def config(cls):
     """
     Returns the configuration object specific to this miner or validator after adding relevant arguments.
