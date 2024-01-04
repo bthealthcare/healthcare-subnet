@@ -103,6 +103,13 @@ def add_args(cls, parser):
         default=False,
     )
 
+    parser.add_argument(
+        "--neuron.auto_update",
+        action="store_true",
+        help="If set, we will update the current mechine to the latest one.",
+        default=False,
+    )
+
     if neuron_type == "validator":
         parser.add_argument(
             "--neuron.num_concurrent_forwards",
