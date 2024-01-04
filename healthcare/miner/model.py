@@ -34,38 +34,48 @@ import bittensor as bt
 from constant import Constant
 
 class CustomModelCheckpoint(Callback):
-    def __init__(self, model, path, save_freq):
+    def __init__(self, model, path, save_freq, monitor='val_loss'):
         super(CustomModelCheckpoint, self).__init__()
         self.model = model
         self.path = path
         self.save_freq = save_freq
+        self.monitor = monitor
+        self.best = np.Inf
         self.batch_counter = 0
 
     def on_batch_end(self, batch, logs=None):
         self.batch_counter += 1
+        current = logs['loss']
+        if self.best == np.Inf:
+            self.best = current
         if self.batch_counter % self.save_freq == 0:
-            self.model.save(os.path.join(self.path, 'best_model.h5'.format(self.batch_counter)))
-            bt.logging.info(f"\nModel saved at batch {self.batch_counter}")
+            if current is not None and current < self.best:
+                bt.logging.info(f"\nBest Model saved!!! {self.best}, {current}")
+                self.best = current
+                self.model.save(os.path.join(self.path, 'best_model'.format(self.batch_counter)))
 
 class ModelTrainer:
     def __init__(self, config):
         self.config = config
 
     def load_and_preprocess_image(self, image_path, target_size=(224, 224)):
-        # Load image
-        img = load_img(image_path, target_size=target_size)
-        img_array = img_to_array(img)
+        try:
+            # Load image
+            img = load_img(image_path, target_size=target_size)
+            img_array = img_to_array(img)
 
-        # Resize the image using NumPy's resize. Note: np.resize and PIL's resize behave differently.
-        img_array = np.array(image.smart_resize(img_array, target_size))
+            # Resize the image using NumPy's resize. Note: np.resize and PIL's resize behave differently.
+            img_array = np.array(image.smart_resize(img_array, target_size))
 
-        # Normalize the image
-        img_array = img_array / 255.0
+            # Normalize the image
+            img_array = img_array / 255.0
 
-        # Expand dimensions to fit the model input format
-        # img_array = np.expand_dims(img_array, axis=0)
+            # Expand dimensions to fit the model input format
+            # img_array = np.expand_dims(img_array, axis=0)
 
-        return img_array
+            return img_array
+        except Exception as e:
+            return "ERROR"
 
     def generate_data(self, image_paths, labels, batch_size):
         num_samples = len(image_paths)
@@ -78,12 +88,24 @@ class ModelTrainer:
                     if not os.path.exists(absolute_path):
                         continue
                     img = self.load_and_preprocess_image(absolute_path)
+                    if isinstance(img, str):
+                        continue
                     batch_images.append(img)
                 yield np.array(batch_images), np.array(batch_labels)
 
     # Function to check if an image exists (mock implementation)
-    def image_exists(self, image_name):
-        return os.path.exists(Constant.BASE_DIR + '/healthcare/dataset/miner/images/' + image_name)
+    def image_exists(self, image_name, target_size=(224, 224)):
+        image_path = Constant.BASE_DIR + '/healthcare/dataset/miner/images/' + image_name
+        if not os.path.exists(image_path):
+            return False
+        try:
+            img = load_img(image_path, target_size=target_size)
+            return True
+        except Exception as e:
+            return False
+
+        return True
+        
 
     def load_dataframe(self):
         # Load CSV file
@@ -93,9 +115,6 @@ class ModelTrainer:
         # String list and corresponding image list
         string_list = dataframe['label']
         image_list = dataframe['image_name']
-
-        # Filter strings based on the existence of their corresponding images
-        filtered_strings = [string for string, image in zip(string_list, image_list) if self.image_exists(image)]
 
         # Split the strings into individual labels
         split_labels = [set(string.split('|')) for string in string_list]
@@ -122,7 +141,7 @@ class ModelTrainer:
         return train_gen, dataframe, num_classes
 
     def get_model(self, num_classes):
-        model_file_path = Constant.BASE_DIR + '/healthcare/models/best_model.h5'
+        model_file_path = Constant.BASE_DIR + '/healthcare/models/best_model'
         
         # Check if model exists
         if self.config.restart == False and os.path.exists(model_file_path):
@@ -136,24 +155,25 @@ class ModelTrainer:
             Flatten(),
             Dense(128, activation='relu'),
             Dropout(0.5),
-            Dense(num_classes, activation='softmax')  # num_classes based on your dataset
+            Dense(num_classes, activation='sigmoid')  # num_classes based on your dataset
         ])
 
-        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
         return model
 
     def train(self):
-        bt.logging.info("started training")
         train_generator, train_df, num_classes = self.load_dataframe()
         model = self.get_model(num_classes)
-        # checkpoint = ModelCheckpoint(
-        #     filepath=Constant.BASE_DIR + '/healthcare/models/best_model.h5', 
-        #     monitor='val_loss', 
-        #     verbose=1, 
-        #     save_best_only=True, 
-        #     mode='auto'
-        # )
+
+        checkpoint = ModelCheckpoint(
+            filepath=Constant.BASE_DIR + '/healthcare/models/best_model', 
+            monitor='loss', 
+            verbose=1, 
+            save_best_only=True, 
+            mode='auto'
+        )
+
         custom_checkpoint = CustomModelCheckpoint(
             model,
             path=Constant.BASE_DIR + '/healthcare/models/',
@@ -163,6 +183,6 @@ class ModelTrainer:
         history = model.fit(
             train_generator,
             steps_per_epoch=len(train_df) // self.config.batch_size,  # Adjust based on your batch size
-            epochs=self.config.num_epochs - 1,  # Number of epochs
-            callbacks=[custom_checkpoint]
+            epochs=self.config.num_epochs,  # Number of epochs
+            callbacks=[checkpoint]
         )

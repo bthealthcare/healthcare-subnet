@@ -16,6 +16,9 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import os
+import random
+import pandas as pd
 import bittensor as bt
 
 from healthcare.protocol import Predict
@@ -33,6 +36,38 @@ transform = transforms.Compose([
     transforms.PILToTensor()
 ])
 
+def get_random_image(folder_path):
+    # Get a list of all files in the folder
+    files = os.listdir(folder_path)
+    
+    # Filter out files that are not images
+    image_files = [f for f in files if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp'))]
+    
+    # Select a random image from the list and return its full path
+    if image_files:
+        random_image = random.choice(image_files)
+        # Load CSV file
+        csv_path = Constant.BASE_DIR + '/healthcare/dataset/validator/Data_Entry.csv'
+        # Check if csv file exists
+        if not os.path.exists(csv_path):
+            return "", "Data entry is missing"
+        dataframe = pd.read_csv(csv_path)
+
+        # String list and corresponding image list
+        string_list = dataframe['label'].tolist()
+        image_list = dataframe['image_name'].tolist()
+
+        try:
+            index_of_image = image_list.index(random_image)
+            image_label = string_list[index_of_image]
+        except ValueError:
+            return "", "Data entry doesn't match for images"
+
+        return os.path.join(folder_path, random_image), image_label
+    else:
+        return "", "No images found"
+
+
 async def forward(self):
     """
     It is responsible for querying the network and scoring the responses.
@@ -49,8 +84,14 @@ async def forward(self):
     miner_uids = get_random_uids(self, k=miner_selection_size)
 
     # Define input_image and recommended response
+    # Get the random image from the dataset
+    image_path, image_label = get_random_image(Constant.BASE_DIR + "/healthcare/dataset/validator/images")
+    if image_path == "":
+        bt.logging.error(f"Check the dataset again : {image_label}")
+        return
+
     # Load the image
-    image = Image.open(Constant.BASE_DIR + "/healthcare/dataset/miner/images/00000001_000.png")
+    image = Image.open(image_path)
 
     # Detect the image format
     image_format = image.format
@@ -64,7 +105,8 @@ async def forward(self):
     img_base64 = base64.b64encode(img_byte)
     img_str = img_base64.decode()
 
-    recommended_response = "Cardiomegaly|Emphysema"
+    recommended_response = image_label
+    bt.logging.info(f"recommended_response : {recommended_response}")
 
     # The dendrite client queries the network.
     responses = self.dendrite.query(
