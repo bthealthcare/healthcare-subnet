@@ -58,7 +58,7 @@ def i2t(self, synapse: healthcare.protocol.Predict) -> str:
 
     """
     # Get the file path of model
-    model_file_path = Constant.BASE_DIR + "/healthcare/models/best_model.h5"
+    model_file_path = Constant.BASE_DIR + "/healthcare/models/best_model"
 
     # Check if model exists
     if not os.path.exists(model_file_path):
@@ -87,6 +87,7 @@ def i2t(self, synapse: healthcare.protocol.Predict) -> str:
 
     # Get the predicted label name
     predicted = model.predict(processed_image)
+    bt.logging.info(f"{predicted}")
     scores = list(predicted[0])
 
     # Pair each score with its corresponding label
@@ -101,7 +102,5 @@ def i2t(self, synapse: healthcare.protocol.Predict) -> str:
         max_score_index = scores.index(max(scores))
         # Return the label with the highest score
         labels_above_threshold.append(unique_labels_sorted_list[max_score_index])
-
-    bt.logging.info(f"scores:{(predicted >= self.config.threshold).astype(int)}")
 
     return '|'.join(labels_above_threshold)
