@@ -201,7 +201,8 @@ def add_args(cls, parser):
 
         parser.add_argument(
             "--restart",
-            default = True, 
+            action="store_true",
+            default = False, 
             help="If set miners will start the training from scratch."
         )
 

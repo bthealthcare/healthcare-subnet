@@ -144,8 +144,9 @@ class ModelTrainer:
         model_file_path = Constant.BASE_DIR + '/healthcare/models/best_model'
         
         # Check if model exists
-        if self.config.restart == False and os.path.exists(model_file_path):
+        if not self.config.restart and os.path.exists(model_file_path):
             model = load_model(model_file_path)
+            bt.logging.info(f"Model loaded")
             return model
         
         model = Sequential([
