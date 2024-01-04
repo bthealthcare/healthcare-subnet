@@ -97,6 +97,19 @@ class Miner(BaseMinerNeuron):
                 f"Blacklisting unrecognized hotkey {synapse.dendrite.hotkey}"
             )
             return True, "Unrecognized hotkey"
+        
+        # Get the caller stake
+        caller_uid = self.metagraph.hotkeys.index(
+            synapse.dendrite.hotkey
+        )  # Get the caller index.
+        caller_stake = float(
+            self.metagraph.S[caller_uid]
+        )  # Return the stake as the priority.
+        if caller_stake < 1024:
+            bt.logging.trace(
+                f"Blacklisting hotkey {synapse.dendrite.hotkey}, not enough stake"
+            )
+            return True, "Not enough stake"
 
         bt.logging.trace(
             f"Not Blacklisting recognized hotkey {synapse.dendrite.hotkey}"
