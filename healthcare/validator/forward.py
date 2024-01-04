@@ -29,7 +29,7 @@ from constant import Constant
 
 import torchvision.transforms as transforms
 import base64
-from PIL import Image
+from PIL import Image, ImageEnhance, ImageFilter
 from io import BytesIO
 
 transform = transforms.Compose([
@@ -67,6 +67,42 @@ def get_random_image(folder_path):
     else:
         return "", "No images found"
 
+def process_image(image_path):
+    try:
+        # Load the image
+        image = Image.open(image_path)
+
+        # Detect the image format
+        image_format = image.format
+
+        # Apply a blur effect
+        # Define radius factor
+        radius_factor = random.randint(0, 3)
+        image = image.filter(ImageFilter.GaussianBlur(radius=radius_factor))  # You can adjust the radius
+        
+        # Adjust brightness
+        # Define brightness factor : >1 to increase brightness, <1 to decrease
+        brightness_factor = random.uniform(0.5, 1.5)
+        enhancer = ImageEnhance.Brightness(image)
+        image = enhancer.enhance(brightness_factor)
+        
+        image.save(Constant.BASE_DIR + "/healthcare/dataset/validator/1.png")
+
+        # Convert the image to a byte array
+        buffered = BytesIO()
+        image.save(buffered, format=image_format)
+        img_byte = buffered.getvalue()
+
+        # Encode bytes to a Base64 string
+        img_base64 = base64.b64encode(img_byte)
+        img_str = img_base64.decode()
+        return img_str
+    except Exception as e:
+        bt.logging.error(
+            f"Failed to process the query image : {e}"
+        )
+        return ""
+
 
 async def forward(self):
     """
@@ -86,26 +122,13 @@ async def forward(self):
     # Define input_image and recommended response
     # Get the random image from the dataset
     image_path, image_label = get_random_image(Constant.BASE_DIR + "/healthcare/dataset/validator/images")
-    if image_path == "":
+    if not image_path:
         bt.logging.error(f"Check the dataset again : {image_label}")
         return
-
-    # Load the image
-    image = Image.open(image_path)
-
-    # Detect the image format
-    image_format = image.format
-
-    # Convert the image to a byte array
-    buffered = BytesIO()
-    image.save(buffered, format=image_format)
-    img_byte = buffered.getvalue()
-
-    # Encode bytes to a Base64 string
-    img_base64 = base64.b64encode(img_byte)
-    img_str = img_base64.decode()
-
     recommended_response = image_label
+    img_str = process_image(image_path)
+    if not img_str:
+        return
     bt.logging.info(f"recommended_response : {recommended_response}")
 
     # The dendrite client queries the network.

@@ -87,7 +87,6 @@ def i2t(self, synapse: healthcare.protocol.Predict) -> str:
 
     # Get the predicted label name
     predicted = model.predict(processed_image)
-    bt.logging.info(f"{predicted}")
     scores = list(predicted[0])
 
     # Pair each score with its corresponding label
