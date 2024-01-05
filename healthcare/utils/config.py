@@ -208,7 +208,7 @@ def add_args(cls, parser):
 
         parser.add_argument(
             "--threshold",
-            default = 0.1,
+            default = 0.2,
             help="The predefined cutoff value that is used to determine which labels should be selected based on their corresponding scores."
         )
 
