@@ -104,7 +104,7 @@ def i2t(self, synapse: healthcare.protocol.Predict) -> str:
     scores = list(predicted[0])
 
     # Pair each score with its corresponding label
-    score_label_pairs = zip(scores, unique_labels_sorted_list)
+    score_label_pairs = list(zip(scores, unique_labels_sorted_list))
 
     # Filter out labels with scores above the threshold
     labels_above_threshold = [label for score, label in score_label_pairs if score > self.config.threshold]
