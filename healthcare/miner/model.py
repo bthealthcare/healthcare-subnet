@@ -173,9 +173,21 @@ class ModelTrainer:
             save_freq=self.config.save_model_period  # Change this to your preferred frequency
         )
 
-        history = model.fit(
-            train_generator,
-            steps_per_epoch=len(train_df) // self.config.batch_size,  # Adjust based on your batch size
-            epochs=self.config.num_epochs,  # Number of epochs
-            callbacks=[checkpoint]
-        )
+        # Add EarlyStopping
+        early_stopping = EarlyStopping(monitor='loss', patience=10)
+
+        if self.config.num_epochs == -1:
+            while True:
+                history = model.fit(
+                    train_generator,
+                    steps_per_epoch=len(train_df) // self.config.batch_size,  # Adjust based on your batch size
+                    epochs=1,  # Number of epochs
+                    callbacks=[checkpoint, early_stopping]
+                )
+        else:
+            history = model.fit(
+                train_generator,
+                steps_per_epoch=len(train_df) // self.config.batch_size,  # Adjust based on your batch size
+                epochs=self.config.num_epochs,  # Number of epochs
+                callbacks=[checkpoint, early_stopping]
+            )

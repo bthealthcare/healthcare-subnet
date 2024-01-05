@@ -188,7 +188,7 @@ def add_args(cls, parser):
         parser.add_argument(
             "--num_epochs", 
             type = int, 
-            default = 10, 
+            default = -1, 
             help="Number of training epochs (-1 is infinite)"
         )
 
@@ -208,7 +208,7 @@ def add_args(cls, parser):
 
         parser.add_argument(
             "--threshold",
-            default = 0.5,
+            default = 0.1,
             help="The predefined cutoff value that is used to determine which labels should be selected based on their corresponding scores."
         )
 
