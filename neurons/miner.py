@@ -105,7 +105,7 @@ class Miner(BaseMinerNeuron):
         caller_stake = float(
             self.metagraph.S[caller_uid]
         )  # Return the stake as the priority.
-        if caller_stake < 1024:
+        if caller_stake < 4096:
             bt.logging.trace(
                 f"Blacklisting hotkey {synapse.dendrite.hotkey}, not enough stake"
             )
