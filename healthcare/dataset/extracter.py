@@ -5,7 +5,7 @@ import bittensor as bt
 from constant import Constant
 
 # List of your .tar.gz files
-tar_files = ['images_01.tar.gz']
+tar_files = ['images_03.tar.gz']
 
 # Directory where you want to extract files
 parent_dir = Constant.BASE_DIR + '/healthcare/dataset'

@@ -85,8 +85,6 @@ def process_image(image_path):
         brightness_factor = random.uniform(0.5, 1.5)
         enhancer = ImageEnhance.Brightness(image)
         image = enhancer.enhance(brightness_factor)
-        
-        image.save(Constant.BASE_DIR + "/healthcare/dataset/validator/1.png")
 
         # Convert the image to a byte array
         buffered = BytesIO()
