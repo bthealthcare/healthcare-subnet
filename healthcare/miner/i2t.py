@@ -24,6 +24,7 @@ from PIL import Image
 import numpy as np
 import pandas as pd
 import os
+import time
 import base64
 from io import BytesIO
 
@@ -49,6 +50,15 @@ def preprocess_image(pil_img, target_size=(224, 224)):
 
     return img_array
 
+# Wait for read access to a file within a timeout period.
+def wait_for_read_access(filepath, timeout=5, check_interval=1):
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        if os.path.exists(filepath) and os.access(filepath, os.R_OK):
+            return True, load_model(filepath)
+        time.sleep(check_interval)
+    return False, ""
+
 def i2t(self, synapse: healthcare.protocol.Predict) -> str:
     """
     It is responsible for diagnosing disease with given image.
@@ -62,15 +72,19 @@ def i2t(self, synapse: healthcare.protocol.Predict) -> str:
 
     # Check if model exists
     if not os.path.exists(model_file_path):
+        bt.logging.error(f"No models found")
+        return ""
+    
+    # Load the model
+    successed, model = wait_for_read_access(model_file_path)
+    if successed == False:
+        bt.logging.error(f"Can't get access to the model")
         return ""
 
     # Load and preprocess image of synapse
     img_byte = base64.b64decode(synapse.input_image)
     pil_img = Image.open(BytesIO(img_byte))
     processed_image = preprocess_image(pil_img)
-    
-    # Load the model
-    model = load_model(model_file_path)
 
     # Load labels from Data_Entry
     df = pd.read_csv(Constant.BASE_DIR + '/healthcare/dataset/miner/Data_Entry.csv')

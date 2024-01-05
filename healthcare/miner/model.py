@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+import tempfile
 import pandas as pd
 import numpy as np
 import tensorflow as tf
@@ -85,8 +86,6 @@ class ModelTrainer:
                 batch_labels = labels[offset:offset+batch_size]
                 for img_path in image_paths[offset:offset+batch_size]:
                     absolute_path = Constant.BASE_DIR + '/healthcare/dataset/miner/images/' + img_path
-                    if not os.path.exists(absolute_path):
-                        continue
                     img = self.load_and_preprocess_image(absolute_path)
                     if isinstance(img, str):
                         continue
@@ -98,14 +97,7 @@ class ModelTrainer:
         image_path = Constant.BASE_DIR + '/healthcare/dataset/miner/images/' + image_name
         if not os.path.exists(image_path):
             return False
-        try:
-            img = load_img(image_path, target_size=target_size)
-            return True
-        except Exception as e:
-            return False
-
         return True
-        
 
     def load_dataframe(self):
         # Load CSV file
