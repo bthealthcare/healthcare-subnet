@@ -1,13 +1,4 @@
-# Use this document to specify the minimum compute requirements.
-# This document will be used to generate a list of recommended hardware for your subnet.
-
-# This is intended to give a rough estimate of the minimum requirements
-# so that the user can make an informed decision about whether or not
-# they want to run a miner or validator on their machine.
-
-# NOTE: Specification for miners may be different from validators
-
-version: '1.0' # update this version key as needed, ideally should match your release version
+version: '1.0'
 
 compute_spec:
 
