@@ -18,14 +18,13 @@ links = [
 	'https://nihcc.box.com/shared/static/jn1b4mw4n6lnh74ovmcjb8y48h8xj07n.gz',
     'https://nihcc.box.com/shared/static/tvpxmn7qyrgl0w8wfh9kqfjskv6nmm1j.gz',
 	'https://nihcc.box.com/shared/static/upyy3ml7qdumlgk2rfcvlb9k6gvqq2pj.gz',
-	'https://nihcc.box.com/shared/static/l6nilvfa9cg3s28tqv1qc1olm3gnz54p.gz',
-	'https://nihcc.box.com/shared/static/hhq8fkdgvcari67vfhs7ppg2w6ni4jze.gz',
-	'https://nihcc.box.com/shared/static/ioqwiy20ihqwyr8pf4c24eazhh281pbu.gz'
+	'https://nihcc.box.com/shared/static/l6nilvfa9cg3s28tqv1qc1olm3gnz54p.gz'
 ]
 
 # Directory where you want to extract files
 parent_dir = Constant.BASE_DIR + '/healthcare/dataset'
 extract_to_dir = parent_dir + "/miner"
+os.makedirs(extract_to_dir, exist_ok=True)
 
 for idx, link in enumerate(links):
     tar_file = 'images_%02d.tar.gz' % (idx+1)
