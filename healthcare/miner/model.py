@@ -117,6 +117,11 @@ class ModelTrainer:
 
         # Filter out rows where the corresponding image does not exist
         binary_array_filtered = [binary_array_full[i] for i, image in enumerate(image_list) if self.image_exists(image)]
+        
+        if not binary_array_filtered:
+            bt.logging.error("No images found")
+            return False, False, False
+
         binary_array_filtered = np.vstack(binary_array_filtered)
         
         # Filter out rows where the file does not exist
@@ -157,6 +162,10 @@ class ModelTrainer:
 
     def train(self):
         train_generator, train_df, num_classes = self.load_dataframe()
+
+        if train_generator == False:
+            return
+            
         model = self.get_model(num_classes)
 
         checkpoint = ModelCheckpoint(

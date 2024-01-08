@@ -37,8 +37,11 @@ transform = transforms.Compose([
 ])
 
 def get_random_image(folder_path):
-    # Get a list of all files in the folder
-    files = os.listdir(folder_path)
+    try:
+        # Get a list of all files in the folder
+        files = os.listdir(folder_path)
+    except Exception:
+        return "", "Dataset is missing"
     
     # Filter out files that are not images
     image_files = [f for f in files if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp'))]
