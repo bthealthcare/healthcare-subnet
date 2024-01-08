@@ -1,7 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2023 Yuma Rao
-# TODO(developer): Set your name
-# Copyright © 2023 <your name>
+# Copyright © 2023 demon
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -18,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 
+import time
 import copy
 import torch
 import asyncio
@@ -27,7 +27,7 @@ import bittensor as bt
 from typing import List
 from traceback import print_exception
 
-from template.base.neuron import BaseNeuron
+from healthcare.base.neuron import BaseNeuron
 
 
 class BaseValidatorNeuron(BaseNeuron):
@@ -141,6 +141,9 @@ class BaseValidatorNeuron(BaseNeuron):
                 self.sync()
 
                 self.step += 1
+
+                # Wait for __blocktime__ per a single step
+                time.sleep(bt.__blocktime__)
 
         # If someone intentionally stops the validator, it'll safely terminate operations.
         except KeyboardInterrupt:
@@ -295,7 +298,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # Compute forward pass rewards, assumes uids are mutually exclusive.
         # shape: [ metagraph.n ]
         scattered_rewards: torch.FloatTensor = self.scores.scatter(
-            0, torch.tensor(uids).to(self.device), rewards
+            0, uids.clone().detach().to(self.device), rewards
         ).to(self.device)
         bt.logging.debug(f"Scattered rewards: {rewards}")
 

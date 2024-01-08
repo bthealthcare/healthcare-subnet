@@ -1,2 +1,9 @@
 bittensor
 torch
+pandas
+Pillow
+torchvision
+tensorflow
+pyOpenSSL
+cryptography
+scikit-learn

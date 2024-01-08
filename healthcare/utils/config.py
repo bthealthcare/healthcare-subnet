@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2023 Yuma Rao
-# Copyright © 2023 Opentensor Foundation
+# Copyright © 2023 demon
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -29,14 +29,13 @@ def check_config(cls, config: "bt.Config"):
 
     full_path = os.path.expanduser(
         "{}/{}/{}/netuid{}/{}".format(
-            config.logging.logging_dir,  # TODO: change from ~/.bittensor/miners to ~/.bittensor/neurons
+            config.logging.logging_dir,
             config.wallet.name,
             config.wallet.hotkey,
             config.netuid,
             config.neuron.name,
         )
     )
-    print("full path:", full_path)
     config.neuron.full_path = os.path.expanduser(full_path)
     if not os.path.exists(config.neuron.full_path):
         os.makedirs(config.neuron.full_path, exist_ok=True)
@@ -57,6 +56,8 @@ def check_config(cls, config: "bt.Config"):
 
 
 def add_args(cls, parser):
+    if "BaseNeuron" in cls.__name__:
+        return
     """
     Adds relevant arguments to the parser for operation.
     """
@@ -102,12 +103,33 @@ def add_args(cls, parser):
         default=False,
     )
 
+    parser.add_argument(
+        "--neuron.auto_update",
+        action="store_true",
+        help="If set, we will update the current mechine to the latest one.",
+        default=False,
+    )
+
     if neuron_type == "validator":
         parser.add_argument(
             "--neuron.num_concurrent_forwards",
             type=int,
             help="The number of concurrent forwards running at any time.",
             default=1,
+        )
+        
+        parser.add_argument(
+            "--neuron.query_time",
+            type=int,
+            help="The number of steps for a single query.",
+            default=2,
+        )
+        
+        parser.add_argument(
+            "--neuron.score_update_time",
+            type=int,
+            help="The number of steps for a single score update.",
+            default=10,
         )
 
         parser.add_argument(
@@ -163,6 +185,38 @@ def add_args(cls, parser):
             default=False,
         )
 
+        parser.add_argument(
+            "--num_epochs", 
+            type = int, 
+            default = -1, 
+            help="Number of training epochs (-1 is infinite)"
+        )
+
+        parser.add_argument(
+            "--batch_size", 
+            type = int, 
+            default = 32, 
+            help="The batch size"
+        )
+
+        parser.add_argument(
+            "--restart",
+            action="store_true",
+            default = False, 
+            help="If set miners will start the training from scratch."
+        )
+
+        parser.add_argument(
+            "--threshold",
+            default = 0.2,
+            help="The predefined cutoff value that is used to determine which labels should be selected based on their corresponding scores."
+        )
+
+        parser.add_argument(
+            "--save_model_period",
+            default = 30,
+            help="The period of batches during which the model is saved."
+        )
 
 def config(cls):
     """
