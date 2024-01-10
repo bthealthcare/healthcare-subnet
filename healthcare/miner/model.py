@@ -22,11 +22,12 @@ import pandas as pd
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
-
+from tensorflow.keras.applications import VGG16
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
-from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
+from tensorflow.keras.models import Sequential, load_model, Model
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, GlobalAveragePooling2D
+from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
@@ -53,11 +54,13 @@ class CustomModelCheckpoint(Callback):
             if current is not None and current < self.best:
                 bt.logging.info(f"\nBest Model saved!!! {self.best}, {current}")
                 self.best = current
-                self.model.save(os.path.join(self.path, 'best_model'.format(self.batch_counter)))
+                self.model.save(self.path.format(self.batch_counter))
 
 class ModelTrainer:
     def __init__(self, config):
         self.config = config
+        self.model_type = config.model_type.lower()
+        self.training_mode = config.training_mode.lower()
 
     def load_and_preprocess_image(self, image_path, target_size=(224, 224)):
         try:
@@ -138,7 +141,7 @@ class ModelTrainer:
         return train_gen, dataframe, num_classes
 
     def get_model(self, num_classes):
-        model_file_path = Constant.BASE_DIR + '/healthcare/models/best_model'
+        model_file_path = Constant.BASE_DIR + '/healthcare/models/' + self.model_type
         
         # Check if model exists
         if not self.config.restart and os.path.exists(model_file_path):
@@ -146,18 +149,32 @@ class ModelTrainer:
             bt.logging.info(f"Model loaded")
             return model
         
-        model = Sequential([
-            Conv2D(32, (3, 3), activation='relu', input_shape=(224, 224, 3)),
-            MaxPooling2D(2, 2),
-            # Add more layers as needed
-            Flatten(),
-            Dense(128, activation='relu'),
-            Dropout(0.5),
-            Dense(num_classes, activation='sigmoid')  # num_classes based on your dataset
-        ])
+        if self.model_type == "cnn":
+            model = Sequential([
+                Conv2D(32, (3, 3), activation='relu', input_shape=(224, 224, 3)),
+                MaxPooling2D(2, 2),
+                # Add more layers as needed
+                Flatten(),
+                Dense(128, activation='relu'),
+                Dropout(0.5),
+                Dense(num_classes, activation='sigmoid')  # num_classes based on your dataset
+            ])
 
-        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+            model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
+        elif self.model_type == "vgg":
+            # Load VGG16 pre-trained on ImageNet without the top layer
+            base_model_vgg = VGG16(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+            if self.training_mode == "fast":
+                base_model_vgg.trainable = False  # Freeze the layers
+
+            # Add custom layers
+            x = GlobalAveragePooling2D()(base_model_vgg.output)
+            x = Dense(1024, activation='relu')(x)
+            predictions = Dense(num_classes, activation='softmax')(x)
+
+            model = Model(inputs=base_model_vgg.input, outputs=predictions)
+            model.compile(optimizer=Adam(lr=0.0001), loss='binary_crossentropy', metrics=['accuracy'])
         return model
 
     def train(self):
@@ -169,7 +186,7 @@ class ModelTrainer:
         model = self.get_model(num_classes)
 
         checkpoint = ModelCheckpoint(
-            filepath=Constant.BASE_DIR + '/healthcare/models/best_model', 
+            filepath=Constant.BASE_DIR + '/healthcare/models/' + self.model_type, 
             monitor='loss', 
             verbose=1, 
             save_best_only=True, 
@@ -178,7 +195,7 @@ class ModelTrainer:
 
         custom_checkpoint = CustomModelCheckpoint(
             model,
-            path=Constant.BASE_DIR + '/healthcare/models/',
+            path=Constant.BASE_DIR + '/healthcare/models/' + self.model_type,
             save_freq=self.config.save_model_period  # Change this to your preferred frequency
         )
 

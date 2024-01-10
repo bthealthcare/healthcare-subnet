@@ -68,7 +68,7 @@ def i2t(self, synapse: healthcare.protocol.Predict) -> str:
 
     """
     # Get the file path of model
-    model_file_path = Constant.BASE_DIR + "/healthcare/models/best_model"
+    model_file_path = Constant.BASE_DIR + "/healthcare/models/" + self.config.model_type.lower()
 
     # Check if model exists
     if not os.path.exists(model_file_path):
