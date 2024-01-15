@@ -216,6 +216,20 @@ def add_args(cls, parser):
             "--save_model_period",
             default = 30,
             help="The period of batches during which the model is saved."
+        )        
+        
+        parser.add_argument(
+            "--model_type",
+            type = str,
+            default = "CNN",
+            help="The architecture and structure of the neural network used for training."
+        )
+        
+        parser.add_argument(
+            "--training_mode",
+            type = str,
+            default = "normal",
+            help="The training mode, whether in fast, normal, or slow mode, dictates the pace and intensity of the model training process."
         )
 
 def config(cls):
