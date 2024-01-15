@@ -54,13 +54,13 @@ def get_random_image(folder_path):
         # Check if csv file exists
         if not os.path.exists(csv_path):
             return "", "Data entry is missing"
-        dataframe = pd.read_csv(csv_path)
-
-        # String list and corresponding image list
-        string_list = dataframe['label'].tolist()
-        image_list = dataframe['image_name'].tolist()
 
         try:
+            dataframe = pd.read_csv(csv_path)
+            # String list and corresponding image list
+            string_list = dataframe['label'].tolist()
+            image_list = dataframe['image_name'].tolist()
+
             index_of_image = image_list.index(random_image)
             image_label = string_list[index_of_image]
         except ValueError:
@@ -125,6 +125,7 @@ async def forward(self):
     image_path, image_label = get_random_image(Constant.BASE_DIR + "/healthcare/dataset/validator/images")
     if not image_path:
         bt.logging.error(f"Check the dataset again : {image_label}")
+        self.config.neuron.disable_set_weights = True
         return
     recommended_response = image_label
     img_str = process_image(image_path)
@@ -141,6 +142,7 @@ async def forward(self):
         # All responses have the deserialize function called on them before returning.
         # You are encouraged to define your own deserialization function.
         # deserialize=True,
+        timeout=30,
     )
 
     # Log the results for monitoring purposes.
