@@ -21,8 +21,10 @@ import tempfile
 import pandas as pd
 import numpy as np
 import tensorflow as tf
+import gc
+from keras import backend as K
 from tensorflow.keras.callbacks import Callback
-from tensorflow.keras.applications import VGG16
+from tensorflow.keras.applications import VGG16, ResNet50, EfficientNetB0, MobileNet
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
 from tensorflow.keras.models import Sequential, load_model, Model
@@ -59,7 +61,8 @@ class CustomModelCheckpoint(Callback):
 class ModelTrainer:
     def __init__(self, config):
         self.config = config
-        self.model_type = config.model_type.lower()
+        user_input_model_type = config.model_type.lower()
+        self.model_type = user_input_model_type if user_input_model_type in ['vgg', 'res', 'efficient', 'mobile'] else 'cnn'
         self.training_mode = config.training_mode.lower()
 
     def load_and_preprocess_image(self, image_path, target_size=(224, 224)):
@@ -144,10 +147,15 @@ class ModelTrainer:
         model_file_path = Constant.BASE_DIR + '/healthcare/models/' + self.model_type
         
         # Check if model exists
-        if not self.config.restart and os.path.exists(model_file_path):
-            model = load_model(model_file_path)
-            bt.logging.info(f"Model loaded")
-            return model
+        if not self.config.restart:
+            if os.path.exists(model_file_path):
+                model = load_model(model_file_path)
+                bt.logging.info(f"Model loaded")
+                return model
+            elif self.model_type == 'cnn' and os.path.exists(Constant.BASE_DIR + '/healthcare/models/best_model'):
+                model = load_model(Constant.BASE_DIR + '/healthcare/models/best_model')
+                bt.logging.info(f"Model loaded")
+                return model
         
         if self.model_type == "cnn":
             model = Sequential([
@@ -174,7 +182,46 @@ class ModelTrainer:
             predictions = Dense(num_classes, activation='softmax')(x)
 
             model = Model(inputs=base_model_vgg.input, outputs=predictions)
-            model.compile(optimizer=Adam(lr=0.0001), loss='binary_crossentropy', metrics=['accuracy'])
+            model.compile(optimizer=Adam(learning_rate=0.0001), loss='binary_crossentropy', metrics=['accuracy'])
+
+        elif self.model_type == "res":
+            base_model_res = ResNet50(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+            if self.training_mode == "fast":
+                base_model_res.trainable = False  # Freeze the layers
+
+            # Add custom layers
+            x = GlobalAveragePooling2D()(base_model_res.output)
+            x = Dense(1024, activation='relu')(x)
+            predictions = Dense(num_classes, activation='softmax')(x)
+
+            model = Model(inputs=base_model_res.input, outputs=predictions)
+            model.compile(optimizer=Adam(learning_rate=0.0001), loss='binary_crossentropy', metrics=['accuracy'])
+
+        elif self.model_type == "efficient":
+            base_model_efficient = EfficientNetB0(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+            if self.training_mode == "fast":
+                base_model_efficient.trainable = False  # Freeze the layers
+
+            # Add custom layers
+            x = GlobalAveragePooling2D()(base_model_efficient.output)
+            x = Dense(1024, activation='relu')(x)
+            predictions = Dense(num_classes, activation='softmax')(x)
+
+            model = Model(inputs=base_model_efficient.input, outputs=predictions)
+            model.compile(optimizer=Adam(learning_rate=0.0001), loss='binary_crossentropy', metrics=['accuracy'])
+
+        elif self.model_type == "mobile":
+            base_model_mobile = MobileNet(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+            if self.training_mode == "fast":
+                base_model_mobile.trainable = False  # Freeze the layers
+
+            # Add custom layers
+            x = GlobalAveragePooling2D()(base_model_mobile.output)
+            x = Dense(1024, activation='relu')(x)
+            predictions = Dense(num_classes, activation='softmax')(x)
+
+            model = Model(inputs=base_model_mobile.input, outputs=predictions)
+            model.compile(optimizer=Adam(learning_rate=0.0001), loss='binary_crossentropy', metrics=['accuracy'])
         return model
 
     def train(self):
@@ -210,6 +257,8 @@ class ModelTrainer:
                     epochs=1,  # Number of epochs
                     callbacks=[checkpoint, early_stopping]
                 )
+                K.clear_session()
+                gc.collect()
         else:
             history = model.fit(
                 train_generator,

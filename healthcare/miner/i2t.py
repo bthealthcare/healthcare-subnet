@@ -68,12 +68,16 @@ def i2t(self, synapse: healthcare.protocol.Predict) -> str:
 
     """
     # Get the file path of model
-    model_file_path = Constant.BASE_DIR + "/healthcare/models/" + self.config.model_type.lower()
+    user_input_model_type = self.config.model_type.lower()
+    model_type = user_input_model_type if user_input_model_type in ['vgg', 'res', 'efficient', 'mobile'] else 'cnn'
+    model_file_path = Constant.BASE_DIR + "/healthcare/models/" + model_type
 
     # Check if model exists
     if not os.path.exists(model_file_path):
-        bt.logging.error(f"No models found")
-        return ""
+        model_file_path = Constant.BASE_DIR + "/healthcare/models/best_model"
+        if not os.path.exists(model_file_path):
+            bt.logging.error(f"No models found")
+            return ""
     
     # Load the model
     successed, model = wait_for_read_access(model_file_path)
