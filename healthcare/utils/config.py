@@ -232,6 +232,13 @@ def add_args(cls, parser):
             help="The training mode, whether in fast, normal, or slow mode, dictates the pace and intensity of the model training process."
         )
 
+        parser.add_argument(
+            "--device",
+            type = str,
+            default = "gpu",
+            help="The device will be used for model training."
+        )
+
 def config(cls):
     """
     Returns the configuration object specific to this miner or validator after adding relevant arguments.
