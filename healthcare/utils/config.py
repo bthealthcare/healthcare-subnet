@@ -62,7 +62,7 @@ def add_args(cls, parser):
     Adds relevant arguments to the parser for operation.
     """
     # Netuid Arg: The netuid of the subnet to connect to.
-    parser.add_argument("--netuid", type=int, help="Subnet netuid", default=1)
+    parser.add_argument("--netuid", type=int, help="Subnet netuid", default=31)
 
     neuron_type = (
         "validator" if "miner" not in cls.__name__.lower() else "miner"
@@ -230,6 +230,13 @@ def add_args(cls, parser):
             type = str,
             default = "normal",
             help="The training mode, whether in fast, normal, or slow mode, dictates the pace and intensity of the model training process."
+        )
+
+        parser.add_argument(
+            "--device",
+            type = str,
+            default = "gpu",
+            help="The device will be used for model training."
         )
 
 def config(cls):

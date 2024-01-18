@@ -104,6 +104,8 @@ pm2 start neurons/miner.py --name miner --interpreter python3 --
     --batch_size # the number of data points processed in a single iteration, default = 32
     --threshold # the predefined cutoff value that is used to determine which labels should be selected based on their corresponding scores, default = 0.2
     --save_model_period # the period of batches during which the model is saved, default = 30
+    --model_type # the architecture and structure of the neural network used for training, default = CNN, VGG, RES, EFFICIENT, MOBILE
+    --training_mode # the training mode, whether in fast, normal, or slow mode, dictates the pace and intensity of the model training process, default = normal
     --restart # if set, miners will start the training from scratch, default = False
 ```
 
@@ -123,6 +125,8 @@ pm2 start neurons/miner.py --name miner --interpreter python3 --
     --batch_size 256
     --threshold 0.5
     --restart True
+    --model_type vgg
+    --training_mode fast
 ```
 
 ### Running validator
