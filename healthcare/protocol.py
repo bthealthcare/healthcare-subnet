@@ -21,36 +21,28 @@ import bittensor as bt
 import torch
 import pydantic
 
-class Predict(bt.Synapse):
+class Request(bt.Synapse):
     """
-    This protocol helps in handling predict request and response communication between
+    This protocol helps in handling Request request and response communication between
     the miner and the validator.
 
     Attributes:
-    - input_image: An image representing the input request sent by the validator.
-    - output_text: A string value which, when filled, represents the response from the miner.
+    - hf_link: A link of the huggingface model. # username/model_type
+    - key: A string value to decrypt the model.
     """
 
-    # Required request input, filled by sending dendrite caller.
-    input_image: str = ""
+    # Required request output, filled by recieving axon.
+    hf_link: str = ""
+    key: str = ""
 
-    # Optional request output, filled by recieving axon.
-    output_text: typing.Optional[str] = ""
-
-    def deserialize(self) -> str:
+    def deserialize(self) -> list:
         """
         Deserialize the output. This method retrieves the response from
         the miner in the form of output_text, deserializes it and returns it
         as the output of the dendrite.query() call.
 
         Returns:
-        - str: The deserialized response, which in this case is the value of output_text.
-
-        Example:
-        Assuming a Predict instance has a output_text value of Diabetes:
-        >>> predict_instance = Predict(input_image="...")
-        >>> predict_instance.output_text = "Diabetes"
-        >>> predict_instance.deserialize()
-        Diabetes
+        >>> list: The deserialized response, which in this case is the value of [hf_link, key].
         """
-        return self.output_text
+        
+        return self.hf_link, self.key

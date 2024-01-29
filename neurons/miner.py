@@ -22,10 +22,13 @@ import bittensor as bt
 
 # Healthcare Miner:
 import healthcare
-from healthcare.miner import i2t
 
 # import base miner class which takes care of most of the boilerplate
 from healthcare.base.miner import BaseMinerNeuron
+
+from huggingface_hub import HfApi, Repository
+from dotenv import load_dotenv
+load_dotenv()
 
 
 class Miner(BaseMinerNeuron):
@@ -41,26 +44,40 @@ class Miner(BaseMinerNeuron):
         super(Miner, self).__init__(config=config)
 
     async def forward(
-        self, synapse: healthcare.protocol.Predict
-    ) -> healthcare.protocol.Predict:
+        self, synapse: healthcare.protocol.Request
+    ) -> healthcare.protocol.Request:
         """
-        Processes the incoming 'Predict' synapse by performing a predefined operation on the input data.
+        Processes the incoming 'Request' synapse by performing a predefined operation on the input data.
         This method should be replaced with actual logic relevant to the miner's purpose.
 
         Args:
-            synapse (healthcare.protocol.Predict): The synapse object containing the 'input_image' data.
+            synapse (healthcare.protocol.Request): The synapse object containing the 'input_image' data.
 
         Returns:
-            healthcare.protocol.Predict: The synapse object with the 'output_text' field set to twice the 'input_image' value.
+            healthcare.protocol.Request: The synapse object with the 'output_text' field set to twice the 'input_image' value.
 
         The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
-        synapse.output_text = i2t(self, synapse)
+
+        # Define huggingface link
+        user_input_model_type = self.config.model_type.lower()
+        model_type = user_input_model_type if user_input_model_type in ['vgg', 'res', 'efficient', 'mobile'] else 'cnn'
+        repo_name = self.wallet.hotkey.ss58_address + "_" + model_type
+        
+        access_token = os.getenv('ACCESS_TOKEN')
+        if not access_token:
+            return synapse
+
+        api = HfApi()
+        username = api.whoami(access_token)["name"]
+
+        synapse.hf_link = username + "/" + repo_name
+
         return synapse
 
     async def blacklist(
-        self, synapse: healthcare.protocol.Predict
+        self, synapse: healthcare.protocol.Request
     ) -> typing.Tuple[bool, str]:
         """
         Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
@@ -71,7 +88,7 @@ class Miner(BaseMinerNeuron):
         requests before they are deserialized to avoid wasting resources on requests that will be ignored.
 
         Args:
-            synapse (healthcare.protocol.Predict): A synapse object constructed from the headers of the incoming request.
+            synapse (healthcare.protocol.Request): A synapse object constructed from the headers of the incoming request.
 
         Returns:
             Tuple[bool, str]: A tuple containing a boolean indicating whether the synapse's hotkey is blacklisted,
@@ -116,7 +133,7 @@ class Miner(BaseMinerNeuron):
         )
         return False, "Hotkey recognized!"
 
-    async def priority(self, synapse: healthcare.protocol.Predict) -> float:
+    async def priority(self, synapse: healthcare.protocol.Request) -> float:
         """
         The priority function determines the order in which requests are handled. More valuable or higher-priority
         requests are processed before others. You should design your own priority mechanism with care.
@@ -124,7 +141,7 @@ class Miner(BaseMinerNeuron):
         This implementation assigns priority to incoming requests based on the calling entity's stake in the metagraph.
 
         Args:
-            synapse (healthcare.protocol.Predict): The synapse object that contains metadata about the incoming request.
+            synapse (healthcare.protocol.Request): The synapse object that contains metadata about the incoming request.
 
         Returns:
             float: A priority score derived from the stake of the calling entity.

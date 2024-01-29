@@ -136,7 +136,7 @@ class BaseMinerNeuron(BaseNeuron):
         Starts the miner's operations in a separate background thread.
         This is useful for non-blocking operations.
         """
-        trainer = ModelTrainer(self.config)
+        trainer = ModelTrainer(self.config, self.wallet.hotkey.ss58_address)
         if not self.is_running:
             bt.logging.debug("Starting miner in background thread.")
             self.should_exit = False
@@ -215,8 +215,6 @@ class BaseMinerNeuron(BaseNeuron):
             bt.logging.error(
                 f"Failed to set weights on chain with exception: { e }"
             )
-
-        bt.logging.info(f"Set weights: {chain_weights}")
 
     def resync_metagraph(self):
         """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""

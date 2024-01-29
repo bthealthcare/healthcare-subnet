@@ -20,7 +20,7 @@ import torch
 from typing import List
 
 
-def reward(recommended: str, response: str) -> float:
+def reward(response: str) -> float:
     """
     Reward the miner response to the predict request. This method returns a reward
     value for the miner, which is used to update the miner's score.
@@ -28,15 +28,7 @@ def reward(recommended: str, response: str) -> float:
     Returns:
     - float: The reward value for the miner.
     """
-    recommended_labels = set(recommended.split('|'))
-    response_labels = set(response.split('|'))
-
-    # Find the intersection (common elements) between the sets
-    common_labels = recommended_labels.intersection(response_labels)
-    common_labels_count = len(common_labels)
-
-    # Return the count of common elements
-    return common_labels_count * common_labels_count / len(recommended_labels) / len(response_labels)
+    return 1
 
 
 def get_rewards(
@@ -57,4 +49,4 @@ def get_rewards(
     # Get all the reward results by iteratively calling your reward() function.
     return torch.FloatTensor(
         [reward(recommended, response) for response in responses]
-    ).to(self.device)
+    )
