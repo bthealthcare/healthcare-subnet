@@ -38,7 +38,6 @@ Validators, another crucial component of our ecosystem, play the pivotal role of
 Our subnet thrives on healthy competition. Miners are motivated to not just participate but excel, as their rewards are directly proportional to the performance of their models. The better a model performs in terms of accuracy and loss metrics, the greater the rewards for its creator. This competitive environment ensures that only the best, most efficient models rise to the top.
 
 Validators are also rewarded for their critical role in the ecosystem. By providing fair, unbiased evaluations, they ensure that the network remains transparent and meritocratic. Their assessments are crucial in determining which models receive the highest rewards, thereby guiding the direction of AI development on our subnet.
----
 
 ## Installation
 
