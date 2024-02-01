@@ -106,6 +106,7 @@ pm2 start neurons/miner.py --name miner --interpreter python3 --
     --save_model_period # the period of batches during which the model is saved, default = 30
     --model_type # the architecture and structure of the neural network used for training, default = CNN, VGG, RES, EFFICIENT, MOBILE
     --training_mode # the training mode, whether in fast, normal, or slow mode, dictates the pace and intensity of the model training process, default = normal
+    --device gpu:0,2 # the device will be used for model training, default = gpu
     --restart # if set, miners will start the training from scratch, default = False
 ```
 
@@ -127,6 +128,7 @@ pm2 start neurons/miner.py --name miner --interpreter python3 --
     --restart True
     --model_type vgg
     --training_mode fast
+    --device cpu:4
 ```
 
 ### Running validator

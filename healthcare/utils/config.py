@@ -76,17 +76,10 @@ def add_args(cls, parser):
     )
 
     parser.add_argument(
-        "--neuron.device",
-        type=str,
-        help="Device to run on.",
-        default="cpu",
-    )
-
-    parser.add_argument(
         "--neuron.epoch_length",
         type=int,
         help="The default epoch length (how often we set weights, measured in 12 second blocks).",
-        default=100,
+        default=360,
     )
 
     parser.add_argument(
@@ -122,13 +115,6 @@ def add_args(cls, parser):
             "--neuron.query_time",
             type=int,
             help="The number of steps for a single query.",
-            default=2,
-        )
-        
-        parser.add_argument(
-            "--neuron.score_update_time",
-            type=int,
-            help="The number of steps for a single score update.",
             default=10,
         )
 
@@ -136,7 +122,7 @@ def add_args(cls, parser):
             "--neuron.sample_size",
             type=int,
             help="The number of miners to query in a single step.",
-            default=10,
+            default=20,
         )
 
         parser.add_argument(
@@ -150,7 +136,7 @@ def add_args(cls, parser):
             "--neuron.moving_average_alpha",
             type=float,
             help="Moving average alpha parameter, how much to add of the new observation.",
-            default=0.05,
+            default=0.2,
         )
 
         parser.add_argument(
@@ -211,17 +197,11 @@ def add_args(cls, parser):
             default = 0.2,
             help="The predefined cutoff value that is used to determine which labels should be selected based on their corresponding scores."
         )
-
-        parser.add_argument(
-            "--save_model_period",
-            default = 30,
-            help="The period of batches during which the model is saved."
-        )        
         
         parser.add_argument(
             "--model_type",
             type = str,
-            default = "CNN",
+            default = "cnn",
             help="The architecture and structure of the neural network used for training."
         )
         
@@ -235,7 +215,7 @@ def add_args(cls, parser):
         parser.add_argument(
             "--device",
             type = str,
-            default = "gpu",
+            default = "cpu",
             help="The device will be used for model training."
         )
 
