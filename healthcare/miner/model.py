@@ -19,7 +19,6 @@
 import os
 import re
 import tempfile
-import pandas as pd
 import numpy as np
 import tensorflow as tf
 import gc
@@ -35,25 +34,29 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
-from huggingface_hub import HfApi, Repository
+from huggingface_hub import HfApi, upload_file, HfFolder
 
 import bittensor as bt
-from constant import Constant
+from healthcare.dataset.dataset import load_dataset
+from constants import BASE_DIR, ALL_LABELS
 from dotenv import load_dotenv
 load_dotenv()
 
 class UploadModelCallback(Callback):
-    def __init__(self, monitor='loss', repo_name, model_directory, access_token):
+    def __init__(self, monitor, repo_name, model_directory, access_token):
         self.monitor = monitor
-        self.mode = mode
         self.best = float('inf')
         self.repo_name = repo_name
         self.model_directory = model_directory
         self.access_token = access_token
-        self.api = HfApi()
-        self.username = self.api.whoami(access_token)["name"]
-        self.repo_url = self.api.create_repo(token=access_token, name=repo_name, exist_ok=True)
-        self.repo = Repository(model_directory, clone_from=self.repo_url, use_auth_token=access_token)
+        HfFolder.save_token(access_token)
+        try:
+            self.api = HfApi()
+            self.username = self.api.whoami(access_token)["name"]
+            self.repo_url = self.username + "/" + self.repo_name
+            self.api.create_repo(token=access_token, repo_id=repo_name, exist_ok = True)
+        except Exception as e:
+            bt.logging.error(f"Error occured while creating a repository : {e}")
 
     def on_epoch_end(self, epoch, logs=None):
         current = logs.get(self.monitor)
@@ -62,13 +65,22 @@ class UploadModelCallback(Callback):
             # Save the best model
             self.model.save(self.model_directory)
 
-            # Upload the best model to Hugging Face
-            self.repo.git_add(auto_lfs_track=True)
-            self.repo.git_commit(f"Upload best model at epoch {epoch+1}")
-            self.repo.git_push()
+            # Upload it to the huggingface
+            try:
+                for root, dirs, files in os.walk(self.model_directory):
+                    for file in files:
+                        # Generate the full path and then remove the base directory part
+                        full_path = os.path.join(root, file)
+                        relative_path = os.path.relpath(full_path, self.model_directory)
+                        upload_file(
+                            path_or_fileobj=full_path,
+                            path_in_repo=relative_path,
+                            repo_id=self.repo_url
+                        )
 
-            bt.logging.info(f"Best model uploaded to {self.repo_url}")
-
+                bt.logging.info(f"Best model uploaded at {self.repo_url}")
+            except Exception as e:
+                bt.logging.error(f"Error occured while pushing recent model to a repository : {e}")
 
 class ModelTrainer:
     def __init__(self, config, hotkey):
@@ -102,56 +114,30 @@ class ModelTrainer:
                 batch_images = []
                 batch_labels = labels[offset:offset+batch_size]
                 for img_path in image_paths[offset:offset+batch_size]:
-                    absolute_path = Constant.BASE_DIR + '/healthcare/dataset/miner/images/' + img_path
+                    absolute_path = BASE_DIR + '/healthcare/dataset/miner/images/' + img_path
                     img = self.load_and_preprocess_image(absolute_path)
                     if isinstance(img, str):
                         continue
                     batch_images.append(img)
                 yield np.array(batch_images), np.array(batch_labels)
 
-    # Function to check if an image exists (mock implementation)
-    def image_exists(self, image_name, target_size=(224, 224)):
-        image_path = Constant.BASE_DIR + '/healthcare/dataset/miner/images/' + image_name
-        if not os.path.exists(image_path):
-            return False
-        return True
-
     def load_dataframe(self):
-        # Load CSV file
-        dataframe = pd.read_csv(Constant.BASE_DIR + '/healthcare/dataset/miner/Data_Entry.csv')
-
-        # Filter out rows where the file does not exist
-        dataframe['file_exists'] = dataframe['image_name'].apply(lambda x: self.image_exists(x))
-        dataframe = dataframe[dataframe['file_exists']]
-        dataframe = dataframe.drop(columns=['file_exists'])
-
-        # Preprocess images labels
-        label_list = dataframe['label']
-        image_list = dataframe['image_name']
-
-        # Split all_labels and independent labels
-        all_labels_list = set(Constant.ALL_LABELS.split('|'))
-        split_labels = [set(label.split('|')) for label in label_list]
-
-        # Initialize MultiLabelBinarizer
-        mlb = MultiLabelBinarizer()
-        mlb.fit([all_labels_list])
-        
-        # Transform each label
-        binary_output = [mlb.transform([label]).tolist()[0] for label in split_labels]
-        
+        csv_path = BASE_DIR + '/healthcare/dataset/miner/Data_Entry.csv'
+        image_dir = BASE_DIR + '/healthcare/dataset/miner/images'
+        image_list, binary_output, dataframe = load_dataset(csv_path, image_dir)
+                
         if not binary_output:
             bt.logging.error("No images found")
             return False, False, False
 
-        train_gen = self.generate_data(image_list.values, binary_output, self.config.batch_size)
+        train_gen = self.generate_data(image_list, binary_output, self.config.batch_size)
 
-        num_classes = binary_output.shape[1]
+        num_classes = len(all_labels_list)
 
         return train_gen, dataframe, num_classes
 
     def get_model(self, num_classes):
-        model_file_path = Constant.BASE_DIR + '/healthcare/models/' + self.model_type
+        model_file_path = BASE_DIR + '/healthcare/models/' + self.model_type
         
         # Check if model exists
         if not self.config.restart and os.path.exists(model_file_path):
@@ -282,7 +268,7 @@ class ModelTrainer:
             bt.logging.error(f"Define ACCESS_TOKEN in .env file")
             return
 
-        model_directory = Constant.BASE_DIR + '/healthcare/models/' + self.model_type
+        model_directory = BASE_DIR + '/healthcare/models/' + self.model_type
         repo_name = self.hotkey + "_" + self.model_type
 
         upload_callback = UploadModelCallback(
@@ -314,3 +300,16 @@ class ModelTrainer:
                 epochs=self.config.num_epochs,  # Number of epochs
                 callbacks=[early_stopping, upload_callback]
             )
+
+class Config:
+    def __init__(self, model_type, device, training_mode, batch_size, restart, num_epochs):
+        self.model_type = model_type
+        self.device = device
+        self.training_mode = training_mode
+        self.batch_size = batch_size
+        self.restart = restart
+        self.num_epochs = num_epochs
+hotkey = "54653675347"
+config = Config('cnn', 'cpu', 'normal', 32, True, -1)
+trainer = ModelTrainer(config, hotkey)
+trainer.train()

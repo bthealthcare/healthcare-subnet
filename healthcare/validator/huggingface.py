@@ -16,33 +16,43 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import typing
-import bittensor as bt
 import torch
-import pydantic
+from huggingface_hub import snapshot_download
+from constants import BASE_DIR
+from typing import List
+from dotenv import load_dotenv
+load_dotenv()
 
-class Request(bt.Synapse):
+def download(repo_url) -> str:
     """
-    This protocol helps in handling Request request and response communication between
-    the miner and the validator.
+    Download the model of repo_url.
 
-    Attributes:
-    - hf_link: A link of the huggingface model. # username/model_type
-    - key: A string value to decrypt the model.
+    Args:
+    - repo_url (str): The link of model.
+
+    Returns:
+    - str: The path to the model on system.
     """
+    try:
+        local_dir = BASE_DIR + "/healthcare/models/validator"
+        snapshot_download(repo_id = repo_url, local_dir = local_dir, token = os.getenv('ACCESS_TOKEN'))
+        return local_dir + "/repo_url"
+    except Exception as e:
+        bt.logging.error(f"Error occured while downloading {repo_url} : {e}")
+        return ""
 
-    # Required request output, filled by recieving axon.
-    hf_link: str = ""
-    key: str = ""
+def download_models(
+    self,
+    responses: List[str],
+) -> List[str]:
+    """
+    Downloads models from huggingface.
 
-    def deserialize(self) -> str:
-        """
-        Deserialize the output. This method retrieves the response from
-        the miner in the form of output_text, deserializes it and returns it
-        as the output of the dendrite.query() call.
+    Args:
+    - responses (List[str]): A list of responses from the miner. (e.g. username/repo_name)
 
-        Returns:
-        >>> str: The deserialized response, which in this case is the value of hf_link.
-        """
-        
-        return self.hf_link
+    Returns:
+    - List[str]: All the path to the model on system.
+
+    """
+    return [download(response) response in responses]

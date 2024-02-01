@@ -5,7 +5,7 @@ import tarfile
 import os
 
 import bittensor as bt
-from constant import Constant
+from constants import BASE_DIR
 
 # URLs for the zip files
 links = [
@@ -22,7 +22,7 @@ links = [
 ]
 
 # Directory where you want to extract files
-parent_dir = Constant.BASE_DIR + '/healthcare/dataset'
+parent_dir = BASE_DIR + '/healthcare/dataset'
 extract_to_dir = parent_dir + "/miner"
 os.makedirs(extract_to_dir, exist_ok=True)
 

@@ -21,7 +21,7 @@ import bittensor as bt
 from healthcare.protocol import Request
 from healthcare.validator.reward import get_rewards
 from healthcare.utils.uids import get_random_uids
-from constant import Constant
+from healthcare.validator.huggingface import download_models
 
 async def forward(self):
     """
@@ -53,8 +53,12 @@ async def forward(self):
     if not responses:
         return
 
+    # Download models
+    model_paths = download_models(responses = responses)
+    bt.logging.info(f"Path of models: {model_paths}")
+
     # Adjust the scores based on responses from miners.
-    rewards = get_rewards(self, responses=responses)
+    rewards = get_rewards(self, model_paths=model_paths)
 
     bt.logging.info(f"Scored responses: {rewards}")
     # Update the scores based on the rewards.
