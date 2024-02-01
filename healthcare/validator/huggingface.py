@@ -16,7 +16,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import torch
+import os
+import bittensor as bt
 from huggingface_hub import snapshot_download
 from constants import BASE_DIR
 from typing import List
@@ -33,16 +34,17 @@ def download(repo_url) -> str:
     Returns:
     - str: The path to the model on system.
     """
+    if not repo_url:
+        return ""
     try:
-        local_dir = BASE_DIR + "/healthcare/models/validator"
+        local_dir = os.path.join(BASE_DIR, "healthcare/models/validator", repo_url)
         snapshot_download(repo_id = repo_url, local_dir = local_dir, token = os.getenv('ACCESS_TOKEN'))
-        return local_dir + "/repo_url"
+        return local_dir
     except Exception as e:
         bt.logging.error(f"Error occured while downloading {repo_url} : {e}")
         return ""
 
 def download_models(
-    self,
     responses: List[str],
 ) -> List[str]:
     """
@@ -55,4 +57,4 @@ def download_models(
     - List[str]: All the path to the model on system.
 
     """
-    return [download(response) response in responses]
+    return [download(response) for response in responses]

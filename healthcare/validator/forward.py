@@ -46,16 +46,12 @@ async def forward(self):
         deserialize=True,
     )
 
-    # Log the results for monitoring purposes.
-    bt.logging.info(f"Received responses: {responses}")
-
     # Exit if the responses is empty
     if not responses:
         return
 
     # Download models
     model_paths = download_models(responses = responses)
-    bt.logging.info(f"Path of models: {model_paths}")
 
     # Adjust the scores based on responses from miners.
     rewards = get_rewards(self, model_paths=model_paths)

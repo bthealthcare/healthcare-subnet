@@ -33,11 +33,10 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropou
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MultiLabelBinarizer
 from huggingface_hub import HfApi, upload_file, HfFolder
 
 import bittensor as bt
-from healthcare.dataset.dataset import load_dataset
+from healthcare.dataset.dataset import load_dataset, load_and_preprocess_image
 from constants import BASE_DIR, ALL_LABELS
 from dotenv import load_dotenv
 load_dotenv()
@@ -91,22 +90,6 @@ class ModelTrainer:
         self.training_mode = config.training_mode.lower()
         self.hotkey = hotkey
 
-    def load_and_preprocess_image(self, image_path, target_size=(224, 224)):
-        try:
-            # Load image
-            img = load_img(image_path, target_size=target_size)
-            img_array = img_to_array(img)
-
-            # Resize the image using NumPy's resize. Note: np.resize and PIL's resize behave differently.
-            img_array = np.array(image.smart_resize(img_array, target_size))
-
-            # Normalize the image
-            img_array = img_array / 255.0
-
-            return img_array
-        except Exception as e:
-            return "ERROR"
-
     def generate_data(self, image_paths, labels, batch_size):
         num_samples = len(image_paths)
         while True:
@@ -114,16 +97,15 @@ class ModelTrainer:
                 batch_images = []
                 batch_labels = labels[offset:offset+batch_size]
                 for img_path in image_paths[offset:offset+batch_size]:
-                    absolute_path = BASE_DIR + '/healthcare/dataset/miner/images/' + img_path
-                    img = self.load_and_preprocess_image(absolute_path)
+                    img = load_and_preprocess_image(os.path.join(BASE_DIR, 'healthcare/dataset/miner/images', img_path))
                     if isinstance(img, str):
                         continue
                     batch_images.append(img)
                 yield np.array(batch_images), np.array(batch_labels)
 
     def load_dataframe(self):
-        csv_path = BASE_DIR + '/healthcare/dataset/miner/Data_Entry.csv'
-        image_dir = BASE_DIR + '/healthcare/dataset/miner/images'
+        csv_path = os.path.join(BASE_DIR, 'healthcare/dataset/miner/Data_Entry.csv')
+        image_dir = os.path.join(BASE_DIR, 'healthcare/dataset/miner/images')
         image_list, binary_output, dataframe = load_dataset(csv_path, image_dir)
                 
         if not binary_output:
@@ -132,12 +114,13 @@ class ModelTrainer:
 
         train_gen = self.generate_data(image_list, binary_output, self.config.batch_size)
 
+        all_labels_list = set(ALL_LABELS.split('|'))
         num_classes = len(all_labels_list)
 
         return train_gen, dataframe, num_classes
 
     def get_model(self, num_classes):
-        model_file_path = BASE_DIR + '/healthcare/models/' + self.model_type
+        model_file_path = os.path.join(BASE_DIR, 'healthcare/models', self.model_type)
         
         # Check if model exists
         if not self.config.restart and os.path.exists(model_file_path):
@@ -268,7 +251,7 @@ class ModelTrainer:
             bt.logging.error(f"Define ACCESS_TOKEN in .env file")
             return
 
-        model_directory = BASE_DIR + '/healthcare/models/' + self.model_type
+        model_directory = os.path.join(BASE_DIR, 'healthcare/models', self.model_type)
         repo_name = self.hotkey + "_" + self.model_type
 
         upload_callback = UploadModelCallback(
@@ -300,16 +283,3 @@ class ModelTrainer:
                 epochs=self.config.num_epochs,  # Number of epochs
                 callbacks=[early_stopping, upload_callback]
             )
-
-class Config:
-    def __init__(self, model_type, device, training_mode, batch_size, restart, num_epochs):
-        self.model_type = model_type
-        self.device = device
-        self.training_mode = training_mode
-        self.batch_size = batch_size
-        self.restart = restart
-        self.num_epochs = num_epochs
-hotkey = "54653675347"
-config = Config('cnn', 'cpu', 'normal', 32, True, -1)
-trainer = ModelTrainer(config, hotkey)
-trainer.train()

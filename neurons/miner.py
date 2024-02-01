@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
+import os
 import typing
 import bittensor as bt
 
@@ -171,5 +172,5 @@ class Miner(BaseMinerNeuron):
 if __name__ == "__main__":
     with Miner() as miner:
         while True:
-            bt.logging.info("Miner running...", time.time())
+            # bt.logging.info("Miner running...", time.time())
             time.sleep(5)

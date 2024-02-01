@@ -41,8 +41,6 @@ class Validator(BaseValidatorNeuron):
 
     def __init__(self, config=None):
         super(Validator, self).__init__(config=config)
-
-        bt.logging.info("load_state()")
         self.load_state()
 
     async def forward(self):
@@ -61,5 +59,5 @@ class Validator(BaseValidatorNeuron):
 if __name__ == "__main__":
     with Validator() as validator:
         while True:
-            bt.logging.info("Validator running...", time.time())
+            # bt.logging.info("Validator running...", time.time())
             time.sleep(5)

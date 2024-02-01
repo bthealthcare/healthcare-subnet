@@ -16,10 +16,14 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import os
 import torch
+import numpy as np
+import bittensor as bt
 from typing import List
 from tensorflow.keras.models import load_model
-from healthcare.dataset.dataset import load_dataset
+from healthcare.dataset.dataset import load_dataset, load_and_preprocess_image
+from constants import BASE_DIR
 
 def get_loss(model_path: str) -> float:
     """
@@ -31,17 +35,29 @@ def get_loss(model_path: str) -> float:
     Returns:
     - float: The loss value for the model.
     """
+    if not model_path:
+        return float('inf')
     try:
         # Load dataset
-        csv_path = BASE_DIR + '/healthcare/dataset/validator/Data_Entry.csv'
-        image_dir = BASE_DIR + '/healthcare/dataset/validator/images'
-        image_list, binary_output, dataframe = load_dataset(csv_path, image_dir)
+        csv_path = os.path.join(BASE_DIR, 'healthcare/dataset/validator/Data_Entry.csv')
+        image_dir = os.path.join(BASE_DIR, 'healthcare/dataset/validator/images')
+        image_paths, binary_output, dataframe = load_dataset(csv_path, image_dir)
+
+        # Generate x_input and y_output
+        x_input = []
+        y_output = []
+        for idx, image_path in enumerate(image_paths):
+            img = load_and_preprocess_image(os.path.join(image_dir, image_path))
+            if isinstance(img, str):
+                continue
+            x_input.append(img)
+            y_output.append(binary_output[idx])
 
         # Load model
         model = load_model(model_path)
 
         # Evaluate loss and accuracy
-        loss, accuracy = model.evaluate(image_list, binary_output)
+        loss, accuracy = model.evaluate(np.array(x_input), np.array(y_output))
         return loss
     except Exception as e:
         bt.logging.error(f"Error occured while loading model {model_path} : {e}")
@@ -64,10 +80,15 @@ def get_rewards(
     loss_of_models = [[idx, get_loss(model_path)] for idx, model_path in enumerate(model_paths)]
 
     # Sort the list by the value, keeping track of original indices
-    sorted_loss = sorted(loss_of_models, key=lambda item: item[1])
+    sorted_loss = sorted((value, idx) for idx, value in loss_of_models)
     
     # Create a dictionary to map original indices to their ranks
-    rank_dict = {idx: rank for rank, (value, idx) in enumerate(sorted_data)}
+    rank_dict = {}
+    current_rank = 0
+    for i, (value, index) in enumerate(sorted_loss):
+        if i > 0 and value != sorted_loss[i - 1][0]:
+            current_rank += 1
+        rank_dict[index] = current_rank
 
     # Define groupA and groupB
     count_of_models = len(model_paths)
@@ -83,7 +104,7 @@ def get_rewards(
         if rank < top_20p_count:
             reward = 0.9 ** rank
         else:
-            reward = (0.9 ** top_20p_count) * (0.5 ** (top_20p_count - rank))
+            reward = (0.9 ** top_20p_count) * (0.5 ** (rank - top_20p_count))
         rewards.append(reward)
 
     return torch.FloatTensor(rewards)
