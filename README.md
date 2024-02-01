@@ -13,6 +13,8 @@
 
 ---
 - [Introduction](#introduction)
+  - [How it works](#how-it-works)
+  - [Competition and Reward](#competition-and-reward)
 - [Installation](#installation)
   - [Before you proceed](#before-you-proceed)
   - [Install](#install)
@@ -26,7 +28,17 @@
 ## Introduction
 
 A groundbreaking healthcare subnet on the Bittensor network!
-In this innovative system, validators seamlessly transmit medical images to miners, who, in turn, predict diseases with precision. Miners earn rewards based on the accuracy of their predictions and continually enhance their models through training. Our healthcare subnet stands at the forefront of collaborative, AI-driven healthcare solutions, promising advancements in disease diagnosis and contributing to the evolution of medical research.
+
+### How it works
+At the heart of our subnet are the miners - talented AI developers and teams dedicated to training and refining machine learning models. These models are not static; they are dynamic and continuously improved upon. Miners publish their latest models on Hugging Face, a platform renowned for its vast repository of AI models, making these advancements accessible to our community and beyond.
+
+Validators, another crucial component of our ecosystem, play the pivotal role of assessing these models. They download the models from Hugging Face and evaluate them using their own diverse datasets. This evaluation isn't just a binary measure of success or failure; it is a nuanced process that involves ranking the models based on their loss metrics. The lower the loss, the higher the model ranks, reflecting its accuracy and efficiency in solving real-world problems.
+
+### Competition and Reward
+Our subnet thrives on healthy competition. Miners are motivated to not just participate but excel, as their rewards are directly proportional to the performance of their models. The better a model performs in terms of accuracy and loss metrics, the greater the rewards for its creator. This competitive environment ensures that only the best, most efficient models rise to the top.
+
+Validators are also rewarded for their critical role in the ecosystem. By providing fair, unbiased evaluations, they ensure that the network remains transparent and meritocratic. Their assessments are crucial in determining which models receive the highest rewards, thereby guiding the direction of AI development on our subnet.
+---
 
 ## Installation
 
@@ -85,6 +97,11 @@ docker-compose up --detach
 
 ### Running miner
 In this innovative healthcare subnet, miners play a crucial role in contributing to disease diagnosis by predicting from medical images. Through continuous training, miners strive to improve their models, with more accurate models earning substantial rewards. Miners have the flexibility to adapt and enhance the structure of their models, datasets, and other factors influencing model accuracy. This collaborative effort aims to advance disease prediction and underscores the vital role miners play in shaping the future of medical diagnostics.
+
+#### Setting Up Your Hugging Face Account
+Please start by visiting the Hugging Face website at https://huggingface.co/ and take a moment to set up your account. After your account is successfully created, the next step involves obtaining your account's access_token, which is essential for further actions. Detailed instructions on how to secure your access_token can be found here: https://huggingface.co/docs/hub/security-tokens.
+
+Once you have your access_token, please proceed by locating the .env.example file. After finding it, kindly rename the file to .env. The final step is to copy your access_token into this newly renamed .env file.
 
 #### Download the dataset for model training
 ```bash

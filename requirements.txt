@@ -7,3 +7,6 @@ tensorflow
 pyOpenSSL
 cryptography
 scikit-learn
+python-dotenv
+transformers
+huggingface_hub
