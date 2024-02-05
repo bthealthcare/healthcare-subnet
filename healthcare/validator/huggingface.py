@@ -18,12 +18,25 @@
 
 import os
 import shutil
+import sys
 import bittensor as bt
+from contextlib import contextmanager
 from huggingface_hub import snapshot_download
 from constants import BASE_DIR
 from typing import List
 from dotenv import load_dotenv
 load_dotenv()
+
+@contextmanager
+def suppress_stdout_stderr():
+    """A context manager that redirects stdout and stderr to devnull"""
+    with open(os.devnull, 'w') as fnull:
+        old_stdout, old_stderr = sys.stdout, sys.stderr
+        sys.stdout, sys.stderr = fnull, fnull
+        try:
+            yield
+        finally:
+            sys.stdout, sys.stderr = old_stdout, old_stderr
 
 def download(self, uid, repo_url) -> str:
     """
@@ -43,7 +56,8 @@ def download(self, uid, repo_url) -> str:
     # Download the model
     try:
         local_dir = os.path.join(BASE_DIR, "healthcare/models/validator", repo_url)
-        snapshot_download(repo_id = repo_url, local_dir = local_dir, token = os.getenv('ACCESS_TOKEN'))
+        with suppress_stdout_stderr():
+            snapshot_download(repo_id = repo_url, local_dir = local_dir, token = os.getenv('ACCESS_TOKEN'))
         return local_dir
     except Exception as e:
         bt.logging.error(f"❌ Error occured while downloading {repo_url} : {e}")
@@ -64,6 +78,7 @@ def download_models(
     - List[str]: All the path to the model on system.
 
     """
+    bt.logging.info(f"⏬ Downloading models")
     return [download(self, uids[idx], response) for idx, response in enumerate(responses)]
 
 def remove_models(
