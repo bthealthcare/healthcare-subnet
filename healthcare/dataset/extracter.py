@@ -25,7 +25,7 @@ from typing import List
 from dotenv import load_dotenv
 load_dotenv()
 
-def download_dataset(self) -> str:
+def download_dataset() -> bool:
     """
     Download the dataset.
 
@@ -34,13 +34,13 @@ def download_dataset(self) -> str:
     # Check if DATASET_LINK is defined
     if not repo_url:
         bt.logging.error(f"Please define the DATASET_LINK.")
-        return
+        return False
     
     access_token = os.getenv('ACCESS_TOKEN')
     # Check if ACCESS_TOKEN is defined
     if not access_token:
         bt.logging.error("Please define the ACCESS_TOKEN")
-        return
+        return False
     
     # Download the dataset
     try:
@@ -53,6 +53,8 @@ def download_dataset(self) -> str:
         with tarfile.open(parent_dir + tar_file, 'r:gz') as tar:
             tar.extractall(path=extract_to_dir)
 
+        return True
+
     except Exception as e:
         bt.logging.error(f"Error occured while downloading the dataset: {e}")
-        return
+        return False

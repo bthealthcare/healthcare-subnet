@@ -28,6 +28,7 @@ from typing import List
 from traceback import print_exception
 
 from healthcare.base.neuron import BaseNeuron
+from healthcare.dataset.extracter import download_dataset
 
 
 class BaseValidatorNeuron(BaseNeuron):
@@ -251,8 +252,13 @@ class BaseValidatorNeuron(BaseNeuron):
 
     def resync_metagraph(self):
         """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
-        bt.logging.info("resync_metagraph()")
 
+        # Download the latest dataset from hugging face
+        download_status = download_dataset()
+        if download_status:
+            bt.logging.info(f"✅Successfully downloaded the dataset")
+
+        bt.logging.info("resync_metagraph()")
         # Copies state of metagraph before syncing.
         previous_metagraph = copy.deepcopy(self.metagraph)
 
