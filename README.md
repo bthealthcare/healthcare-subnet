@@ -4,14 +4,12 @@
 [![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/bittensor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
----
 
 ## The Incentivized Internet <!-- omit in toc -->
 
 [Discord](https://discord.gg/bittensor) • [Network](https://taostats.io/) • [Research](https://bittensor.com/whitepaper)
 </div>
 
----
 - [Introduction](#introduction)
   - [How it works](#how-it-works)
   - [Competition and Reward](#competition-and-reward)
@@ -39,6 +37,7 @@ Our subnet thrives on healthy competition. Miners are motivated to not just part
 
 Validators are also rewarded for their critical role in the ecosystem. By providing fair, unbiased evaluations, they ensure that the network remains transparent and meritocratic. Their assessments are crucial in determining which models receive the highest rewards, thereby guiding the direction of AI development on our subnet.
 
+---
 ## Installation
 
 ### Before you proceed
@@ -75,8 +74,13 @@ apt update && apt upgrade -y
 apt install nodejs npm -y
 npm i -g pm2
 ```
----
 
+#### Setting Up Your Hugging Face Account
+Please start by visiting the Hugging Face website at https://huggingface.co/ and take a moment to set up your account. After your account is successfully created, the next step involves obtaining your account's access_token, which is essential for further actions. Detailed instructions on how to secure your access_token can be found here: https://huggingface.co/docs/hub/security-tokens.
+
+Once you have your access_token, please proceed by locating the .env.example file. After finding it, kindly rename the file to .env. The final step is to copy your access_token into this newly renamed .env file.
+
+---
 ## Running
 
 ### Running subtensor locally
@@ -96,11 +100,6 @@ docker-compose up --detach
 
 ### Running miner
 In this innovative healthcare subnet, miners play a crucial role in contributing to disease diagnosis by predicting from medical images. Through continuous training, miners strive to improve their models, with more accurate models earning substantial rewards. Miners have the flexibility to adapt and enhance the structure of their models, datasets, and other factors influencing model accuracy. This collaborative effort aims to advance disease prediction and underscores the vital role miners play in shaping the future of medical diagnostics.
-
-#### Setting Up Your Hugging Face Account
-Please start by visiting the Hugging Face website at https://huggingface.co/ and take a moment to set up your account. After your account is successfully created, the next step involves obtaining your account's access_token, which is essential for further actions. Detailed instructions on how to secure your access_token can be found here: https://huggingface.co/docs/hub/security-tokens.
-
-Once you have your access_token, please proceed by locating the .env.example file. After finding it, kindly rename the file to .env. The final step is to copy your access_token into this newly renamed .env file.
 
 #### Download the dataset for model training
 ```bash
@@ -148,9 +147,6 @@ pm2 start neurons/miner.py --name miner --interpreter python3 --
 ### Running validator
 Validators play a pivotal role in evaluating miner's models by periodically sending diverse images for assessment. They meticulously score miners based on their responses, contributing to the ongoing refinement of models and ensuring the highest standards of performance and accuracy in our collaborative network.
 
-#### Asking demon(discord) to provide the dataset
-Validators are kindly encouraged to request the dataset from Demon (Discord username) before initiating the process. Please feel free to establish communication with the subnet owner and inquire if they would be willing to provide the dataset.
-
 #### Run the validator
 ```bash
 # To run the validator
@@ -178,6 +174,7 @@ pm2 start neurons/validator.py --name validator --interpreter python3 --
     --vpermit_tao_limit 1024
 ```
 
+---
 ## License
 This repository is licensed under the MIT License.
 ```text
