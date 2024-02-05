@@ -18,6 +18,9 @@
 
 import os
 import re
+import shutil
+import sys
+from contextlib import contextmanager
 import tempfile
 import numpy as np
 import tensorflow as tf
@@ -40,6 +43,18 @@ from healthcare.dataset.dataset import load_dataset, load_and_preprocess_image
 from constants import BASE_DIR, ALL_LABELS
 from dotenv import load_dotenv
 load_dotenv()
+
+
+@contextmanager
+def suppress_stdout_stderr():
+    """A context manager that redirects stdout and stderr to devnull"""
+    with open(os.devnull, 'w') as fnull:
+        old_stdout, old_stderr = sys.stdout, sys.stderr
+        sys.stdout, sys.stderr = fnull, fnull
+        try:
+            yield
+        finally:
+            sys.stdout, sys.stderr = old_stdout, old_stderr
 
 class UploadModelCallback(Callback):
     def __init__(self, monitor, repo_name, model_directory, access_token):
@@ -71,11 +86,12 @@ class UploadModelCallback(Callback):
                         # Generate the full path and then remove the base directory part
                         full_path = os.path.join(root, file)
                         relative_path = os.path.relpath(full_path, self.model_directory)
-                        upload_file(
-                            path_or_fileobj=full_path,
-                            path_in_repo=relative_path,
-                            repo_id=self.repo_url
-                        )
+                        with suppress_stdout_stderr():
+                            upload_file(
+                                path_or_fileobj=full_path,
+                                path_in_repo=relative_path,
+                                repo_id=self.repo_url
+                            )
 
                 bt.logging.info(f"✅ Best model uploaded at {self.repo_url}")
             except Exception as e:
