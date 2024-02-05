@@ -191,12 +191,6 @@ def add_args(cls, parser):
             default = False, 
             help="If set miners will start the training from scratch."
         )
-
-        parser.add_argument(
-            "--threshold",
-            default = 0.2,
-            help="The predefined cutoff value that is used to determine which labels should be selected based on their corresponding scores."
-        )
         
         parser.add_argument(
             "--model_type",

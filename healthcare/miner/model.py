@@ -55,7 +55,7 @@ class UploadModelCallback(Callback):
             self.repo_url = self.username + "/" + self.repo_name
             self.api.create_repo(token=access_token, repo_id=repo_name, exist_ok = True)
         except Exception as e:
-            bt.logging.error(f"Error occured while creating a repository : {e}")
+            bt.logging.error(f"❌ Error occured while creating a repository : {e}")
 
     def on_epoch_end(self, epoch, logs=None):
         current = logs.get(self.monitor)
@@ -77,9 +77,9 @@ class UploadModelCallback(Callback):
                             repo_id=self.repo_url
                         )
 
-                bt.logging.info(f"Best model uploaded at {self.repo_url}")
+                bt.logging.info(f"✅ Best model uploaded at {self.repo_url}")
             except Exception as e:
-                bt.logging.error(f"Error occured while pushing recent model to a repository : {e}")
+                bt.logging.error(f"❌ Error occured while pushing recent model to a repository : {e}")
 
 class ModelTrainer:
     def __init__(self, config, hotkey):
@@ -109,7 +109,7 @@ class ModelTrainer:
         image_list, binary_output, dataframe = load_dataset(csv_path, image_dir)
                 
         if not binary_output:
-            bt.logging.error("No images found")
+            bt.logging.error("❌ No images found")
             return False, False, False
 
         train_gen = self.generate_data(image_list, binary_output, self.config.batch_size)
@@ -125,7 +125,7 @@ class ModelTrainer:
         # Check if model exists
         if not self.config.restart and os.path.exists(model_file_path):
             model = load_model(model_file_path)
-            bt.logging.info(f"Model loaded")
+            bt.logging.info(f"🔃 Model loaded")
             return model
         
         if self.model_type == "cnn":
@@ -248,7 +248,7 @@ class ModelTrainer:
         # Define upload_callback
         access_token = os.getenv('ACCESS_TOKEN')
         if not access_token:
-            bt.logging.error(f"Define ACCESS_TOKEN in .env file")
+            bt.logging.error(f"❌ Define ACCESS_TOKEN in .env file")
             return
 
         model_directory = os.path.join(BASE_DIR, 'healthcare/models', self.model_type)

@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+import shutil
 import bittensor as bt
 from huggingface_hub import snapshot_download
 from constants import BASE_DIR
@@ -24,7 +25,7 @@ from typing import List
 from dotenv import load_dotenv
 load_dotenv()
 
-def download(repo_url) -> str:
+def download(self, uid, repo_url) -> str:
     """
     Download the model of repo_url.
 
@@ -34,17 +35,23 @@ def download(repo_url) -> str:
     Returns:
     - str: The path to the model on system.
     """
-    if not repo_url:
+    # Check if repo_url is correct
+    miner_hotkey = self.metagraph.hotkeys[uid]
+    if not repo_url or miner_hotkey not in repo_url:
         return ""
+    
+    # Download the model
     try:
         local_dir = os.path.join(BASE_DIR, "healthcare/models/validator", repo_url)
         snapshot_download(repo_id = repo_url, local_dir = local_dir, token = os.getenv('ACCESS_TOKEN'))
         return local_dir
     except Exception as e:
-        bt.logging.error(f"Error occured while downloading {repo_url} : {e}")
+        bt.logging.error(f"❌ Error occured while downloading {repo_url} : {e}")
         return ""
 
 def download_models(
+    self,
+    uids: List[int],
     responses: List[str],
 ) -> List[str]:
     """
@@ -57,4 +64,19 @@ def download_models(
     - List[str]: All the path to the model on system.
 
     """
-    return [download(response) for response in responses]
+    return [download(self, uids[idx], response) for idx, response in enumerate(responses)]
+
+def remove_models(
+    self,
+):
+    """
+    Remove the cache to reduce storage usage.
+
+    """
+    
+    try:
+        local_dir = os.path.join(BASE_DIR, "healthcare/models/validator")
+        shutil.rmtree(local_dir)
+        shutil.rmtree("~/.cache/huggingface")
+    except Exception as e:
+        return

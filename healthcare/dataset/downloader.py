@@ -36,4 +36,4 @@ for idx, link in enumerate(links):
     with tarfile.open(os.path.join(parent_dir, 'miner', tar_file), 'r:gz') as tar:
         tar.extractall(path=extract_to_dir)
 
-bt.logging.info("Download complete. Please check the checksums")
+bt.logging.info("✅ Download complete. Please check the checksums")

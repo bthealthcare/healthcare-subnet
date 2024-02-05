@@ -60,7 +60,7 @@ def get_loss(model_path: str) -> float:
         loss, accuracy = model.evaluate(np.array(x_input), np.array(y_output))
         return loss
     except Exception as e:
-        bt.logging.error(f"Error occured while loading model {model_path} : {e}")
+        # bt.logging.error(f"❌ Error occured while loading model {model_path} : {e}")
         return float('inf')
 
 def get_rewards(
