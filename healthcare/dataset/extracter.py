@@ -33,28 +33,27 @@ def download_dataset() -> bool:
     repo_url = os.getenv('DATASET_LINK')
     # Check if DATASET_LINK is defined
     if not repo_url:
-        bt.logging.error(f"❌Please define the DATASET_LINK.")
+        bt.logging.error(f"❌ Please define the DATASET_LINK.")
         return False
     
     access_token = os.getenv('ACCESS_TOKEN')
     # Check if ACCESS_TOKEN is defined
     if not access_token:
-        bt.logging.error("❌Please define the ACCESS_TOKEN")
+        bt.logging.error("❌ Please define the ACCESS_TOKEN")
         return False
     
     # Download the dataset
     try:
-        local_dir = os.path.join(BASE_DIR, "healthcare/dataset/validator", repo_url)
-        snapshot_download(repo_id = repo_url, local_dir = local_dir, token = access_token)
+        local_dir = os.path.join(BASE_DIR, "healthcare/dataset/validator")
+        snapshot_download(repo_id = repo_url, repo_type = "dataset", local_dir = local_dir, use_auth_token = access_token)
         # Extract the images.tar.gz
-        # Directory where you want to extract files
         extract_to_dir = BASE_DIR + '/healthcare/dataset/validator'
         tar_file = "images.tar.gz"
-        with tarfile.open(parent_dir + tar_file, 'r:gz') as tar:
+        with tarfile.open(os.path.join(extract_to_dir, tar_file), 'r:gz') as tar:
             tar.extractall(path=extract_to_dir)
 
         return True
 
     except Exception as e:
-        bt.logging.error(f"❌Error occured while downloading the dataset: {e}")
+        bt.logging.error(f"❌ Error occured while downloading the dataset: {e}")
         return False

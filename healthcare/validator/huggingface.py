@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+import shutil
 import bittensor as bt
 from huggingface_hub import snapshot_download
 from constants import BASE_DIR
@@ -45,7 +46,7 @@ def download(self, uid, repo_url) -> str:
         snapshot_download(repo_id = repo_url, local_dir = local_dir, token = os.getenv('ACCESS_TOKEN'))
         return local_dir
     except Exception as e:
-        bt.logging.error(f"❌Error occured while downloading {repo_url} : {e}")
+        bt.logging.error(f"❌ Error occured while downloading {repo_url} : {e}")
         return ""
 
 def download_models(
@@ -72,5 +73,10 @@ def remove_models(
     Remove the cache to reduce storage usage.
 
     """
-    local_dir = os.path.join(BASE_DIR, "healthcare/models/validator")
-    os.rmdir(local_dir)
+    
+    try:
+        local_dir = os.path.join(BASE_DIR, "healthcare/models/validator")
+        shutil.rmtree(local_dir)
+        shutil.rmtree("~/.cache/huggingface")
+    except Exception as e:
+        return

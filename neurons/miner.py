@@ -68,7 +68,7 @@ class Miner(BaseMinerNeuron):
         
         access_token = os.getenv('ACCESS_TOKEN')
         if not access_token:
-            bt.logging.error(f"❌Define ACCESS_TOKEN in .env file")
+            bt.logging.error(f"❌ Define ACCESS_TOKEN in .env file")
             return synapse
 
         api = HfApi()
@@ -113,7 +113,7 @@ class Miner(BaseMinerNeuron):
         if synapse.dendrite.hotkey not in self.metagraph.hotkeys:
             # Ignore requests from unrecognized entities.
             bt.logging.trace(
-                f"💥Blacklisting unrecognized hotkey {synapse.dendrite.hotkey}"
+                f"💥 Blacklisting unrecognized hotkey {synapse.dendrite.hotkey}"
             )
             return True, "Unrecognized hotkey"
         
@@ -126,12 +126,12 @@ class Miner(BaseMinerNeuron):
         )  # Return the stake as the priority.
         if caller_stake < 4096:
             bt.logging.trace(
-                f"💥Blacklisting hotkey {synapse.dendrite.hotkey}, not enough stake"
+                f"💥 Blacklisting hotkey {synapse.dendrite.hotkey}, not enough stake"
             )
             return True, "Not enough stake"
 
         bt.logging.trace(
-            f"👍Not Blacklisting recognized hotkey {synapse.dendrite.hotkey}"
+            f"👍 Not Blacklisting recognized hotkey {synapse.dendrite.hotkey}"
         )
         return False, "Hotkey recognized!"
 

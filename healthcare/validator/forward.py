@@ -59,6 +59,6 @@ async def forward(self):
     # Remove cache
     remove_models(self)
 
-    bt.logging.info(f"💯Scored responses: {rewards}")
+    bt.logging.info(f"💯 Scored responses: {rewards}")
     # Update the scores based on the rewards.
     self.update_scores(rewards, miner_uids)
