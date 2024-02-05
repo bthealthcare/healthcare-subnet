@@ -45,7 +45,7 @@ def download(self, uid, repo_url) -> str:
         snapshot_download(repo_id = repo_url, local_dir = local_dir, token = os.getenv('ACCESS_TOKEN'))
         return local_dir
     except Exception as e:
-        bt.logging.error(f"Error occured while downloading {repo_url} : {e}")
+        bt.logging.error(f"❌Error occured while downloading {repo_url} : {e}")
         return ""
 
 def download_models(

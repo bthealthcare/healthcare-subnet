@@ -39,11 +39,11 @@ class BaseMinerNeuron(BaseNeuron):
         # Warn if allowing incoming requests from anyone.
         if not self.config.blacklist.force_validator_permit:
             bt.logging.warning(
-                "You are allowing non-validators to send requests to your miner. This is a security risk."
+                "⚠️You are allowing non-validators to send requests to your miner. This is a security risk."
             )
         if self.config.blacklist.allow_non_registered:
             bt.logging.warning(
-                "You are allowing non-registered entities to send requests to your miner. This is a security risk."
+                "⚠️You are allowing non-registered entities to send requests to your miner. This is a security risk."
             )
 
         # The axon handles request processing, allowing validators to send this miner requests.
@@ -149,7 +149,7 @@ class BaseMinerNeuron(BaseNeuron):
             self.trainingTread.start()
 
             self.is_running = True
-            bt.logging.debug("Started")
+            bt.logging.debug("✅Started")
 
     def stop_run_thread(self):
         """
@@ -161,7 +161,7 @@ class BaseMinerNeuron(BaseNeuron):
             self.thread.join(5)
             self.trainingTread.join(5)
             self.is_running = False
-            bt.logging.debug("Stopped")
+            bt.logging.debug("✅Stopped")
 
     def __enter__(self):
         """
@@ -213,7 +213,7 @@ class BaseMinerNeuron(BaseNeuron):
 
         except Exception as e:
             bt.logging.error(
-                f"Failed to set weights on chain with exception: { e }"
+                f"❌Failed to set weights on chain with exception: { e }"
             )
 
     def resync_metagraph(self):
