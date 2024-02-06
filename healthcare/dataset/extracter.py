@@ -17,6 +17,9 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+import shutil
+import sys
+from contextlib import contextmanager
 import tarfile
 import bittensor as bt
 from huggingface_hub import snapshot_download
@@ -24,6 +27,17 @@ from constants import BASE_DIR
 from typing import List
 from dotenv import load_dotenv
 load_dotenv()
+
+@contextmanager
+def suppress_stdout_stderr():
+    """A context manager that redirects stdout and stderr to devnull"""
+    with open(os.devnull, 'w') as fnull:
+        old_stdout, old_stderr = sys.stdout, sys.stderr
+        sys.stdout, sys.stderr = fnull, fnull
+        try:
+            yield
+        finally:
+            sys.stdout, sys.stderr = old_stdout, old_stderr
 
 def download_dataset() -> bool:
     """
@@ -45,7 +59,8 @@ def download_dataset() -> bool:
     # Download the dataset
     try:
         local_dir = os.path.join(BASE_DIR, "healthcare/dataset/validator")
-        snapshot_download(repo_id = repo_url, repo_type = "dataset", local_dir = local_dir, use_auth_token = access_token)
+        with suppress_stdout_stderr():
+            snapshot_download(repo_id = repo_url, repo_type = "dataset", local_dir = local_dir, use_auth_token = access_token)
         # Extract the images.tar.gz
         extract_to_dir = BASE_DIR + '/healthcare/dataset/validator'
         tar_file = "images.tar.gz"
