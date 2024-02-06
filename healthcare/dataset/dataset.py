@@ -17,6 +17,11 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+import glob
+import shutil
+import sys
+import tarfile
+from contextlib import contextmanager
 import numpy as np
 import pandas as pd
 from typing import List
@@ -26,6 +31,18 @@ import bittensor as bt
 from sklearn.preprocessing import MultiLabelBinarizer
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
 from tensorflow.keras.preprocessing import image
+from huggingface_hub import snapshot_download
+
+@contextmanager
+def suppress_stdout_stderr():
+    """A context manager that redirects stdout and stderr to devnull"""
+    with open(os.devnull, 'w') as fnull:
+        old_stdout, old_stderr = sys.stdout, sys.stderr
+        sys.stdout, sys.stderr = fnull, fnull
+        try:
+            yield
+        finally:
+            sys.stdout, sys.stderr = old_stdout, old_stderr
 
 def load_dataset(
     csv_path: str,
@@ -79,3 +96,30 @@ def load_and_preprocess_image(image_path, target_size = (224, 224)):
         return img_array        
     except Exception as e:
         return "ERROR"
+
+def download_dataset() -> bool:
+    """
+    Download the dataset.
+
+    """
+    repo_url = "cogent-demon/miner_dataset"
+    
+    # Download the dataset
+    try:
+        local_dir = os.path.join(BASE_DIR, "healthcare/dataset/miner")
+        with suppress_stdout_stderr():
+            snapshot_download(repo_id = repo_url, repo_type = "dataset", local_dir = local_dir)
+        bt.logging.info(f"♻️  Extracting ...")
+        # Extract the images.tar.gz
+        extract_to_dir = BASE_DIR + '/healthcare/dataset/miner'
+        # Get image files
+        pattern = f"{extract_to_dir}/images*.tar.gz"
+        tar_files = glob.glob(pattern)
+        for tar_file in tar_files:
+            with tarfile.open(tar_file, 'r:gz') as tar:
+                tar.extractall(path=extract_to_dir)
+        return True
+
+    except Exception as e:
+        bt.logging.error(f"❌ Error occured while downloading the dataset: {e}")
+        return False
