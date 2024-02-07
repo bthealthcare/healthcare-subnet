@@ -160,3 +160,7 @@ cython_debug/
 #.idea/
 
 testing/
+
+healthcare/dataset/miner
+healthcare/dataset/validator
+healthcare/models
