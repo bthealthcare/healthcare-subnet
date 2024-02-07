@@ -56,11 +56,12 @@ def download(self, uid, repo_url) -> str:
     # Download the model
     try:
         local_dir = os.path.join(BASE_DIR, "healthcare/models/validator", repo_url)
+        cache_dir = os.path.join(BASE_DIR, "healthcare/models/validator/cache")
         with suppress_stdout_stderr():
-            snapshot_download(repo_id = repo_url, local_dir = local_dir, token = os.getenv('ACCESS_TOKEN'))
+            snapshot_download(repo_id = repo_url, local_dir = local_dir, token = os.getenv('ACCESS_TOKEN'), cache_dir = cache_dir)
         return local_dir
     except Exception as e:
-        bt.logging.error(f"❌ Error occured while downloading {repo_url} : {e}")
+        # bt.logging.error(f"❌ Error occured while downloading {repo_url} : {e}")
         return ""
 
 def download_models(
@@ -92,6 +93,5 @@ def remove_models(
     try:
         local_dir = os.path.join(BASE_DIR, "healthcare/models/validator")
         shutil.rmtree(local_dir)
-        shutil.rmtree("~/.cache/huggingface")
     except Exception as e:
         return
