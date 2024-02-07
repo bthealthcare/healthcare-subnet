@@ -27,6 +27,7 @@ from abc import ABC, abstractmethod
 from healthcare.utils.config import check_config, add_args, config
 from healthcare.utils.misc import ttl_get_block
 from healthcare import __spec_version__ as spec_version
+from healthcare.utils.version import upgrade_version
 
 
 class BaseNeuron(ABC):
@@ -109,6 +110,9 @@ class BaseNeuron(ABC):
         """
         Wrapper for synchronizing the state of the network for the given miner or validator.
         """
+        # Upgrade the version if possible
+        upgrade_version()
+
         # Ensure miner or validator hotkey is still registered on the network.
         self.check_registered()
 
