@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2023 Yuma Rao
-# Copyright © 2023 Opentensor Foundation
+# Copyright © 2023 demon
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -29,14 +29,13 @@ def check_config(cls, config: "bt.Config"):
 
     full_path = os.path.expanduser(
         "{}/{}/{}/netuid{}/{}".format(
-            config.logging.logging_dir,  # TODO: change from ~/.bittensor/miners to ~/.bittensor/neurons
+            config.logging.logging_dir,
             config.wallet.name,
             config.wallet.hotkey,
             config.netuid,
             config.neuron.name,
         )
     )
-    print("full path:", full_path)
     config.neuron.full_path = os.path.expanduser(full_path)
     if not os.path.exists(config.neuron.full_path):
         os.makedirs(config.neuron.full_path, exist_ok=True)
@@ -57,11 +56,13 @@ def check_config(cls, config: "bt.Config"):
 
 
 def add_args(cls, parser):
+    if "BaseNeuron" in cls.__name__:
+        return
     """
     Adds relevant arguments to the parser for operation.
     """
     # Netuid Arg: The netuid of the subnet to connect to.
-    parser.add_argument("--netuid", type=int, help="Subnet netuid", default=1)
+    parser.add_argument("--netuid", type=int, help="Subnet netuid", default=31)
 
     neuron_type = (
         "validator" if "miner" not in cls.__name__.lower() else "miner"
@@ -75,17 +76,10 @@ def add_args(cls, parser):
     )
 
     parser.add_argument(
-        "--neuron.device",
-        type=str,
-        help="Device to run on.",
-        default="cpu",
-    )
-
-    parser.add_argument(
         "--neuron.epoch_length",
         type=int,
         help="The default epoch length (how often we set weights, measured in 12 second blocks).",
-        default=100,
+        default=360,
     )
 
     parser.add_argument(
@@ -102,6 +96,13 @@ def add_args(cls, parser):
         default=False,
     )
 
+    parser.add_argument(
+        "--neuron.auto_update",
+        action="store_true",
+        help="If set, we will update the current mechine to the latest one.",
+        default=False,
+    )
+
     if neuron_type == "validator":
         parser.add_argument(
             "--neuron.num_concurrent_forwards",
@@ -109,12 +110,19 @@ def add_args(cls, parser):
             help="The number of concurrent forwards running at any time.",
             default=1,
         )
+        
+        parser.add_argument(
+            "--neuron.query_time",
+            type=int,
+            help="The number of steps for a single query.",
+            default=10,
+        )
 
         parser.add_argument(
             "--neuron.sample_size",
             type=int,
             help="The number of miners to query in a single step.",
-            default=10,
+            default=256,
         )
 
         parser.add_argument(
@@ -128,7 +136,7 @@ def add_args(cls, parser):
             "--neuron.moving_average_alpha",
             type=float,
             help="Moving average alpha parameter, how much to add of the new observation.",
-            default=0.05,
+            default=0.2,
         )
 
         parser.add_argument(
@@ -163,6 +171,47 @@ def add_args(cls, parser):
             default=False,
         )
 
+        parser.add_argument(
+            "--num_epochs", 
+            type = int, 
+            default = -1, 
+            help="Number of training epochs (-1 is infinite)"
+        )
+
+        parser.add_argument(
+            "--batch_size", 
+            type = int, 
+            default = 32, 
+            help="The batch size"
+        )
+
+        parser.add_argument(
+            "--restart",
+            action="store_true",
+            default = False, 
+            help="If set miners will start the training from scratch."
+        )
+        
+        parser.add_argument(
+            "--model_type",
+            type = str,
+            default = "cnn",
+            help="The architecture and structure of the neural network used for training."
+        )
+        
+        parser.add_argument(
+            "--training_mode",
+            type = str,
+            default = "normal",
+            help="The training mode, whether in fast, normal, or slow mode, dictates the pace and intensity of the model training process."
+        )
+
+        parser.add_argument(
+            "--device",
+            type = str,
+            default = "cpu",
+            help="The device will be used for model training."
+        )
 
 def config(cls):
     """

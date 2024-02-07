@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2023 Yuma Rao
-# Copyright © 2023 Opentensor Foundation
+# Copyright © 2023 demon
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -24,14 +24,14 @@ import bittensor as bt
 from neurons.validator import Neuron as Validator
 from neurons.miner import Neuron as Miner
 
-from template.protocol import Dummy
-from template.validator.forward import forward
-from template.utils.uids import get_random_uids
-from template.validator.reward import get_rewards
-from template.base.validator import BaseValidatorNeuron
+from healthcare.protocol import Predict
+from healthcare.validator.forward import forward
+from healthcare.utils.uids import get_random_uids
+from healthcare.validator.reward import get_rewards
+from healthcare.base.validator import BaseValidatorNeuron
 
 
-class TemplateValidatorNeuronTestCase(unittest.TestCase):
+class HealthcareValidatorNeuronTestCase(unittest.TestCase):
     """
     This class contains unit tests for the RewardEvent classes.
 
@@ -50,27 +50,27 @@ class TemplateValidatorNeuronTestCase(unittest.TestCase):
         self.miner_uids = get_random_uids(self, k=10)
 
     def test_run_single_step(self):
-        # TODO: Test a single step
+        # Test a single step
         pass
 
     def test_sync_error_if_not_registered(self):
-        # TODO: Test that the validator throws an error if it is not registered on metagraph
+        # Test that the validator throws an error if it is not registered on metagraph
         pass
 
     def test_forward(self):
-        # TODO: Test that the forward function returns the correct value
+        # Test that the forward function returns the correct value
         pass
 
-    def test_dummy_responses(self):
-        # TODO: Test that the dummy responses are correctly constructed
+    def test_predict_responses(self):
+        # Test that the predict responses are correctly constructed
 
         responses = self.neuron.dendrite.query(
             # Send the query to miners in the network.
             axons=[
                 self.neuron.metagraph.axons[uid] for uid in self.miner_uids
             ],
-            # Construct a dummy query.
-            synapse=Dummy(dummy_input=self.neuron.step),
+            # Construct a predict query.
+            synapse=Predict(input_image=self.neuron.step),
             # All responses have the deserialize function called on them before returning.
             deserialize=True,
         )
@@ -79,12 +79,12 @@ class TemplateValidatorNeuronTestCase(unittest.TestCase):
             self.assertEqual(response, self.neuron.step * 2)
 
     def test_reward(self):
-        # TODO: Test that the reward function returns the correct value
+        # Test that the reward function returns the correct value
         responses = self.dendrite.query(
             # Send the query to miners in the network.
             axons=[self.metagraph.axons[uid] for uid in self.miner_uids],
-            # Construct a dummy query.
-            synapse=Dummy(dummy_input=self.neuron.step),
+            # Construct a predict query.
+            synapse=Predict(input_image=self.neuron.step),
             # All responses have the deserialize function called on them before returning.
             deserialize=True,
         )
@@ -94,13 +94,13 @@ class TemplateValidatorNeuronTestCase(unittest.TestCase):
         self.assertEqual(rewards, expected_rewards)
 
     def test_reward_with_nan(self):
-        # TODO: Test that NaN rewards are correctly sanitized
-        # TODO: Test that a bt.logging.warning is thrown when a NaN reward is sanitized
+        # Test that NaN rewards are correctly sanitized
+        # Test that a bt.logging.warning is thrown when a NaN reward is sanitized
         responses = self.dendrite.query(
             # Send the query to miners in the network.
             axons=[self.metagraph.axons[uid] for uid in self.miner_uids],
-            # Construct a dummy query.
-            synapse=Dummy(dummy_input=self.neuron.step),
+            # Construct a predict query.
+            synapse=Predict(input_image=self.neuron.step),
             # All responses have the deserialize function called on them before returning.
             deserialize=True,
         )

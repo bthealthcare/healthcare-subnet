@@ -1,7 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2023 Yuma Rao
-# TODO(developer): Set your name
-# Copyright © 2023 <your name>
+# Copyright © 2023 demon
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -18,14 +17,19 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
+import os
 import typing
 import bittensor as bt
 
-# Bittensor Miner Template:
-import template
+# Healthcare Miner:
+import healthcare
 
 # import base miner class which takes care of most of the boilerplate
-from template.base.miner import BaseMinerNeuron
+from healthcare.base.miner import BaseMinerNeuron
+
+from huggingface_hub import HfApi, Repository
+from dotenv import load_dotenv
+load_dotenv()
 
 
 class Miner(BaseMinerNeuron):
@@ -40,30 +44,42 @@ class Miner(BaseMinerNeuron):
     def __init__(self, config=None):
         super(Miner, self).__init__(config=config)
 
-        # TODO(developer): Anything specific to your use case you can do here
-
     async def forward(
-        self, synapse: template.protocol.Dummy
-    ) -> template.protocol.Dummy:
+        self, synapse: healthcare.protocol.Request
+    ) -> healthcare.protocol.Request:
         """
-        Processes the incoming 'Dummy' synapse by performing a predefined operation on the input data.
+        Processes the incoming 'Request' synapse by performing a predefined operation on the input data.
         This method should be replaced with actual logic relevant to the miner's purpose.
 
         Args:
-            synapse (template.protocol.Dummy): The synapse object containing the 'dummy_input' data.
+            synapse (healthcare.protocol.Request): The synapse object containing the 'input_image' data.
 
         Returns:
-            template.protocol.Dummy: The synapse object with the 'dummy_output' field set to twice the 'dummy_input' value.
+            healthcare.protocol.Request: The synapse object with the 'output_text' field set to twice the 'input_image' value.
 
         The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
-        # TODO(developer): Replace with actual implementation logic.
-        synapse.dummy_output = synapse.dummy_input * 2
+
+        # Define huggingface link
+        user_input_model_type = self.config.model_type.lower()
+        model_type = user_input_model_type if user_input_model_type in ['vgg', 'res', 'efficient', 'mobile'] else 'cnn'
+        repo_name = self.wallet.hotkey.ss58_address + "_" + model_type
+        
+        access_token = os.getenv('ACCESS_TOKEN')
+        if not access_token:
+            bt.logging.error(f"❌ Define ACCESS_TOKEN in .env file")
+            return synapse
+
+        api = HfApi()
+        username = api.whoami(access_token)["name"]
+
+        synapse.hf_link = username + "/" + repo_name
+
         return synapse
 
     async def blacklist(
-        self, synapse: template.protocol.Dummy
+        self, synapse: healthcare.protocol.Request
     ) -> typing.Tuple[bool, str]:
         """
         Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
@@ -74,7 +90,7 @@ class Miner(BaseMinerNeuron):
         requests before they are deserialized to avoid wasting resources on requests that will be ignored.
 
         Args:
-            synapse (template.protocol.Dummy): A synapse object constructed from the headers of the incoming request.
+            synapse (healthcare.protocol.Request): A synapse object constructed from the headers of the incoming request.
 
         Returns:
             Tuple[bool, str]: A tuple containing a boolean indicating whether the synapse's hotkey is blacklisted,
@@ -94,20 +110,32 @@ class Miner(BaseMinerNeuron):
 
         Otherwise, allow the request to be processed further.
         """
-        # TODO(developer): Define how miners should blacklist requests.
         if synapse.dendrite.hotkey not in self.metagraph.hotkeys:
             # Ignore requests from unrecognized entities.
             bt.logging.trace(
-                f"Blacklisting unrecognized hotkey {synapse.dendrite.hotkey}"
+                f"💥 Blacklisting unrecognized hotkey {synapse.dendrite.hotkey}"
             )
             return True, "Unrecognized hotkey"
+        
+        # Get the caller stake
+        caller_uid = self.metagraph.hotkeys.index(
+            synapse.dendrite.hotkey
+        )  # Get the caller index.
+        caller_stake = float(
+            self.metagraph.S[caller_uid]
+        )  # Return the stake as the priority.
+        if caller_stake < 4096:
+            bt.logging.trace(
+                f"💥 Blacklisting hotkey {synapse.dendrite.hotkey}, not enough stake"
+            )
+            return True, "Not enough stake"
 
         bt.logging.trace(
-            f"Not Blacklisting recognized hotkey {synapse.dendrite.hotkey}"
+            f"👍 Not Blacklisting recognized hotkey {synapse.dendrite.hotkey}"
         )
         return False, "Hotkey recognized!"
 
-    async def priority(self, synapse: template.protocol.Dummy) -> float:
+    async def priority(self, synapse: healthcare.protocol.Request) -> float:
         """
         The priority function determines the order in which requests are handled. More valuable or higher-priority
         requests are processed before others. You should design your own priority mechanism with care.
@@ -115,7 +143,7 @@ class Miner(BaseMinerNeuron):
         This implementation assigns priority to incoming requests based on the calling entity's stake in the metagraph.
 
         Args:
-            synapse (template.protocol.Dummy): The synapse object that contains metadata about the incoming request.
+            synapse (healthcare.protocol.Request): The synapse object that contains metadata about the incoming request.
 
         Returns:
             float: A priority score derived from the stake of the calling entity.
@@ -127,7 +155,7 @@ class Miner(BaseMinerNeuron):
         Example priority logic:
         - A higher stake results in a higher priority value.
         """
-        # TODO(developer): Define how miners should prioritize requests.
+        # Define how miners should prioritize requests.
         caller_uid = self.metagraph.hotkeys.index(
             synapse.dendrite.hotkey
         )  # Get the caller index.
@@ -144,5 +172,5 @@ class Miner(BaseMinerNeuron):
 if __name__ == "__main__":
     with Miner() as miner:
         while True:
-            bt.logging.info("Miner running...", time.time())
+            # bt.logging.info("Miner running...", time.time())
             time.sleep(5)

@@ -1,7 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2023 Yuma Rao
-# TODO(developer): Set your name
-# Copyright © 2023 <your name>
+# Copyright © 2023 demon
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -17,17 +16,33 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-# TODO(developer): Change this value when updating your code base.
-# Define the version of the template module.
-__version__ = "0.0.0"
-version_split = __version__.split(".")
-__spec_version__ = (
-    (1000 * int(version_split[0]))
-    + (10 * int(version_split[1]))
-    + (1 * int(version_split[2]))
-)
+import typing
+import bittensor as bt
+import torch
+import pydantic
 
-# Import all submodules.
-from . import protocol
-from . import base
-from . import validator
+class Request(bt.Synapse):
+    """
+    This protocol helps in handling Request request and response communication between
+    the miner and the validator.
+
+    Attributes:
+    - hf_link: A link of the huggingface model. # username/model_type
+    - key: A string value to decrypt the model.
+    """
+
+    # Required request output, filled by recieving axon.
+    hf_link: str = ""
+    key: str = ""
+
+    def deserialize(self) -> str:
+        """
+        Deserialize the output. This method retrieves the response from
+        the miner in the form of output_text, deserializes it and returns it
+        as the output of the dendrite.query() call.
+
+        Returns:
+        >>> str: The deserialized response, which in this case is the value of hf_link.
+        """
+        
+        return self.hf_link

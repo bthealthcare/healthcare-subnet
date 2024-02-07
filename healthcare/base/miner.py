@@ -1,5 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2023 Yuma Rao
+# Copyright © 2023 demon
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -23,7 +24,8 @@ import traceback
 
 import bittensor as bt
 
-from template.base.neuron import BaseNeuron
+from healthcare.base.neuron import BaseNeuron
+from healthcare.miner.model import ModelTrainer
 
 
 class BaseMinerNeuron(BaseNeuron):
@@ -35,13 +37,9 @@ class BaseMinerNeuron(BaseNeuron):
         super().__init__(config=config)
 
         # Warn if allowing incoming requests from anyone.
-        if not self.config.blacklist.force_validator_permit:
-            bt.logging.warning(
-                "You are allowing non-validators to send requests to your miner. This is a security risk."
-            )
         if self.config.blacklist.allow_non_registered:
             bt.logging.warning(
-                "You are allowing non-registered entities to send requests to your miner. This is a security risk."
+                "⚠️ You are allowing non-registered entities to send requests to your miner. This is a security risk."
             )
 
         # The axon handles request processing, allowing validators to send this miner requests.
@@ -60,6 +58,7 @@ class BaseMinerNeuron(BaseNeuron):
         self.should_exit: bool = False
         self.is_running: bool = False
         self.thread: threading.Thread = None
+        self.trainingTread: threading.Thread = None
         self.lock = asyncio.Lock()
 
     def run(self):
@@ -95,7 +94,7 @@ class BaseMinerNeuron(BaseNeuron):
         )
         self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
 
-        # Start  starts the miner's axon, making it active on the network.
+        # Starts the miner's axon, making it active on the network.
         self.axon.start()
 
         bt.logging.info(f"Miner starting at block: {self.block}")
@@ -133,13 +132,20 @@ class BaseMinerNeuron(BaseNeuron):
         Starts the miner's operations in a separate background thread.
         This is useful for non-blocking operations.
         """
+        trainer = ModelTrainer(self.config, self.wallet.hotkey.ss58_address)
         if not self.is_running:
             bt.logging.debug("Starting miner in background thread.")
             self.should_exit = False
+            # Start the main thread
             self.thread = threading.Thread(target=self.run, daemon=True)
             self.thread.start()
+            
+            # Start the thread of model training
+            self.trainingTread = threading.Thread(target=trainer.train, daemon=True)
+            self.trainingTread.start()
+
             self.is_running = True
-            bt.logging.debug("Started")
+            bt.logging.debug("✅ Started")
 
     def stop_run_thread(self):
         """
@@ -149,8 +155,9 @@ class BaseMinerNeuron(BaseNeuron):
             bt.logging.debug("Stopping miner in background thread.")
             self.should_exit = True
             self.thread.join(5)
+            self.trainingTread.join(5)
             self.is_running = False
-            bt.logging.debug("Stopped")
+            bt.logging.debug("✅ Stopped")
 
     def __enter__(self):
         """
@@ -202,10 +209,8 @@ class BaseMinerNeuron(BaseNeuron):
 
         except Exception as e:
             bt.logging.error(
-                f"Failed to set weights on chain with exception: { e }"
+                f"❌ Failed to set weights on chain with exception: { e }"
             )
-
-        bt.logging.info(f"Set weights: {chain_weights}")
 
     def resync_metagraph(self):
         """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
