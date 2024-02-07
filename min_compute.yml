@@ -47,8 +47,9 @@ compute_spec:
       recommended_iops: 5000  # Recommended I/O operations per second
 
     gpu:
-      required: False         # Does the application require a GPU?
-      recommended_vram: 8     # Recommended GPU VRAM (GB)
+      required: True          # Does the application require a GPU?
+      min_vram: 8             # Recommended GPU VRAM (GB)
+      recommended_vram: 16    # Recommended GPU VRAM (GB)
 
 network_spec:
   bandwidth:
