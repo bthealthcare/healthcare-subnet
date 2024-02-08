@@ -17,6 +17,10 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+import random
+import shutil
+import sys
+from contextlib import contextmanager
 import torch
 import numpy as np
 import bittensor as bt
@@ -24,6 +28,18 @@ from typing import List
 from tensorflow.keras.models import load_model
 from healthcare.dataset.dataset import load_dataset, load_and_preprocess_image
 from constants import BASE_DIR
+
+
+@contextmanager
+def suppress_stdout_stderr():
+    """A context manager that redirects stdout and stderr to devnull"""
+    with open(os.devnull, 'w') as fnull:
+        old_stdout, old_stderr = sys.stdout, sys.stderr
+        sys.stdout, sys.stderr = fnull, fnull
+        try:
+            yield
+        finally:
+            sys.stdout, sys.stderr = old_stdout, old_stderr
 
 def get_loss(model_path: str) -> float:
     """
@@ -53,11 +69,25 @@ def get_loss(model_path: str) -> float:
             x_input.append(img)
             y_output.append(binary_output[idx])
 
+        # Determine how many pairs you want to select
+        n_pairs = 32
+
+        # Generate a list of indices based on the length of the lists
+        indices = list(range(len(x_input)))
+
+        # Randomly select n indices
+        selected_indices = random.sample(indices, n_pairs)
+
+        # Create new lists by selecting elements from the original lists based on the selected indices
+        new_x_input = [x_input[i] for i in selected_indices]
+        new_y_output = [y_output[i] for i in selected_indices]
+
         # Load model
         model = load_model(model_path)
 
         # Evaluate loss and accuracy
-        loss, accuracy = model.evaluate(np.array(x_input), np.array(y_output))
+        with suppress_stdout_stderr():
+            loss, accuracy = model.evaluate(np.array(new_x_input), np.array(new_y_output), verbose=0)
         return loss
     except Exception as e:
         # bt.logging.error(f"❌ Error occured while loading model {model_path} : {e}")
@@ -76,6 +106,7 @@ def get_rewards(
     Returns:
     - torch.FloatTensor: A tensor of rewards for the given models.
     """
+    bt.logging.info(f"♏ Evaluating models")
     # Calculate loss of models
     loss_of_models = [[idx, get_loss(model_path)] for idx, model_path in enumerate(model_paths)]
 
