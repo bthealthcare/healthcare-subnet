@@ -68,7 +68,7 @@ class BaseNeuron(ABC):
         bt.logging(config=self.config, logging_dir=self.config.full_path)
 
         # Log the configuration for reference.
-        bt.logging.info(self.config)
+        # bt.logging.info(self.config)
 
         # Build Bittensor objects
         # These are core Bittensor classes to interact with the network.
