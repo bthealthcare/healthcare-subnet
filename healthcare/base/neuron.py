@@ -18,7 +18,8 @@
 
 import copy
 import typing
-
+import tensorflow as tf
+import multiprocessing
 import bittensor as bt
 
 from abc import ABC, abstractmethod
@@ -97,6 +98,7 @@ class BaseNeuron(ABC):
             f"Running neuron on subnet: {self.config.netuid} with uid {self.uid} using network: {self.subtensor.chain_endpoint}"
         )
         self.step = 0
+        self.set_device()
 
     @abstractmethod
     async def forward(self, synapse: bt.Synapse) -> bt.Synapse:
@@ -169,3 +171,51 @@ class BaseNeuron(ABC):
         bt.logging.trace(
             "load_state() not implemented for this neuron. You can implement this function to load model checkpoints or other useful data."
         )
+
+    def set_device(self):
+        # Set device
+        if self.config.device.startswith('cpu'):
+            # Do not allow gpus
+            tf.config.set_visible_devices([], 'GPU')
+
+            # Set the number of cpu cores
+            num_cpu_cores = multiprocessing.cpu_count()
+            
+            try:
+                # Find device numbers from string
+                numbers_part = self.config.device.split(":")
+                num_cores_to_use = min(num_cpu_cores, int(numbers_part[1]))
+            except Exception as e:
+                num_cores_to_use = num_cpu_cores
+
+            # Set TensorFlow's parallelism threads
+            tf.config.threading.set_intra_op_parallelism_threads(num_cores_to_use)
+            tf.config.threading.set_inter_op_parallelism_threads(num_cores_to_use)
+
+        elif self.config.device.startswith('gpu'):
+            # Find all avaiable gpus
+            gpus = tf.config.experimental.list_physical_devices('GPU')
+
+            try:
+                # Find device numbers from string
+                numbers_part = self.config.device.split(":")
+                numbers = re.findall(r'\d+', numbers_part[1])
+                device_numbers = [int(num) for num in numbers if int(num) < len(gpus)]
+            except Exception as e:
+                device_numbers = []
+
+            if not device_numbers:
+                device_numbers = [i for i in range(len(gpus))]
+
+            # Set gpus to use
+            if gpus:
+                try:
+                    selected_gpus = [gpus[i] for i in device_numbers]
+
+                    if selected_gpus:
+                        tf.config.experimental.set_visible_devices(selected_gpus, 'GPU')
+
+                        for gpu in selected_gpus:
+                            tf.config.experimental.set_memory_growth(gpu, True)
+                except RuntimeError as e:
+                    selected_gpus = []
