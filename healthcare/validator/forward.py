@@ -22,6 +22,7 @@ from healthcare.protocol import Request
 from healthcare.validator.reward import get_rewards
 from healthcare.utils.uids import get_random_uids
 from healthcare.validator.huggingface import download_models, remove_models
+from healthcare.utils.version import get_version
 
 async def forward(self):
     """
@@ -42,7 +43,7 @@ async def forward(self):
     responses = self.dendrite.query(
         # Send the query to selected miner axons in the network.
         axons=[self.metagraph.axons[uid] for uid in miner_uids],
-        synapse=Request(),
+        synapse=Request(version = get_version()),
         deserialize=True,
     )
 

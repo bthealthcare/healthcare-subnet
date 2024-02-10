@@ -61,6 +61,12 @@ class Miner(BaseMinerNeuron):
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
 
+        # Get the caller stake
+        caller_uid = self.metagraph.hotkeys.index(
+            synapse.dendrite.hotkey
+        )  # Get the caller index.
+        bt.logging.info(f"UID {caller_uid} : v{synapse.version}")
+        
         # Define huggingface link
         user_input_model_type = self.config.model_type.lower()
         model_type = user_input_model_type if user_input_model_type in ['vgg', 'res', 'efficient', 'mobile'] else 'cnn'
