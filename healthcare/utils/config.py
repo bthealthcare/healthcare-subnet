@@ -103,6 +103,13 @@ def add_args(cls, parser):
         default=False,
     )
 
+    parser.add_argument(
+        "--device",
+        type = str,
+        default = "cpu",
+        help="The device will be used for model training."
+    )
+
     if neuron_type == "validator":
         parser.add_argument(
             "--neuron.num_concurrent_forwards",
@@ -204,13 +211,6 @@ def add_args(cls, parser):
             type = str,
             default = "normal",
             help="The training mode, whether in fast, normal, or slow mode, dictates the pace and intensity of the model training process."
-        )
-
-        parser.add_argument(
-            "--device",
-            type = str,
-            default = "cpu",
-            help="The device will be used for model training."
         )
 
 def config(cls):

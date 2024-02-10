@@ -33,7 +33,7 @@ class Request(bt.Synapse):
 
     # Required request output, filled by recieving axon.
     hf_link: str = ""
-    key: str = ""
+    version: str = ""
 
     def deserialize(self) -> str:
         """
