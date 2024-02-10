@@ -210,54 +210,7 @@ class ModelTrainer:
             model.compile(optimizer=Adam(learning_rate=0.0001), loss='binary_crossentropy', metrics=['accuracy'])
         return model
 
-    def train(self):
-        # Set device
-        if self.device.startswith('cpu'):
-            # Do not allow gpus
-            tf.config.set_visible_devices([], 'GPU')
-
-            # Set the number of cpu cores
-            num_cpu_cores = multiprocessing.cpu_count()
-            
-            try:
-                # Find device numbers from string
-                numbers_part = self.device.split(":")
-                num_cores_to_use = min(num_cpu_cores, int(numbers_part[1]))
-            except Exception as e:
-                num_cores_to_use = num_cpu_cores
-
-            # Set TensorFlow's parallelism threads
-            tf.config.threading.set_intra_op_parallelism_threads(num_cores_to_use)
-            tf.config.threading.set_inter_op_parallelism_threads(num_cores_to_use)
-
-        elif self.device.startswith('gpu'):
-            # Find all avaiable gpus
-            gpus = tf.config.experimental.list_physical_devices('GPU')
-
-            try:
-                # Find device numbers from string
-                numbers_part = self.device.split(":")
-                numbers = re.findall(r'\d+', numbers_part[1])
-                device_numbers = [int(num) for num in numbers if int(num) < len(gpus)]
-            except Exception as e:
-                device_numbers = []
-
-            if not device_numbers:
-                device_numbers = [i for i in range(len(gpus))]
-
-            # Set gpus to use
-            if gpus:
-                try:
-                    selected_gpus = [gpus[i] for i in device_numbers]
-
-                    if selected_gpus:
-                        tf.config.experimental.set_visible_devices(selected_gpus, 'GPU')
-
-                        for gpu in selected_gpus:
-                            tf.config.experimental.set_memory_growth(gpu, True)
-                except RuntimeError as e:
-                    selected_gpus = []
-        
+    def train(self):        
         # Define EarlyStopping
         early_stopping = EarlyStopping(monitor='loss', patience=10)
 
