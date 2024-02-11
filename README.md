@@ -79,6 +79,9 @@ npm i -g pm2
 Please start by visiting the Hugging Face website at https://huggingface.co/ and take a moment to set up your account. After your account is successfully created, the next step involves obtaining your account's access_token, which is essential for further actions. Detailed instructions on how to secure your access_token can be found here: https://huggingface.co/docs/hub/security-tokens.
 
 Once you have your access_token, please proceed by locating the .env.example file. After finding it, kindly rename the file to .env. The final step is to copy your access_token into this newly renamed .env file.
+```bash
+For validators in particular, please ensure to define the DATASET_LINK provided by demon (on Discord) in the .env file.
+```
 
 ---
 ## Running
