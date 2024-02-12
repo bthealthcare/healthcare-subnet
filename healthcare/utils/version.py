@@ -28,5 +28,6 @@ def upgrade_version():
         if local_version != remote_version:
             os.system("python3 -m pip install -e . > /dev/null 2>&1")
             bt.logging.info(f"⏫ Upgraded to v{remote_version}")
+            os._exit(0)
     except Exception as e:
         bt.logging.error(f"❌ Error occured while upgrading the version : {e}")
