@@ -112,12 +112,15 @@ class ModelTrainer:
             for offset in range(0, num_samples, batch_size):
                 batch_images = []
                 batch_labels = labels[offset:offset+batch_size]
+                current_batch_size = 0
                 for img_path in image_paths[offset:offset+batch_size]:
                     img = load_and_preprocess_image(os.path.join(BASE_DIR, 'healthcare/dataset/miner/images', img_path))
                     if isinstance(img, str):
                         continue
                     batch_images.append(img)
-                yield np.array(batch_images), np.array(batch_labels)
+                    current_batch_size += 1
+                if current_batch_size == batch_size:
+                    yield np.array(batch_images), np.array(batch_labels)
 
     def load_dataframe(self):
         csv_path = os.path.join(BASE_DIR, 'healthcare/dataset/miner/Data_Entry.csv')
@@ -151,7 +154,7 @@ class ModelTrainer:
                 Flatten(),
                 Dense(128, activation='relu'),
                 Dropout(0.5),
-                Dense(num_classes, activation='sigmoid')
+                Dense(num_classes, activation='softmax')
             ])
 
             model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
