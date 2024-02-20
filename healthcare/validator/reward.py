@@ -121,24 +121,21 @@ def get_rewards(
             current_rank += 1
         rank_dict[index] = current_rank
 
-    # Define weight for the best miner
-    weight_best_miner = 20
-
     # Define groupA and groupB
-    top_10p_rank = current_rank / 10 + 1
-
+    count_of_models = len(model_paths)
+    top_20p_count = count_of_models / 20 + 1
+    division = 0.8
+    
     # Calculate reward for miners
     rewards = []
     for loss_of_model in loss_of_models:
         idx = loss_of_model[0]
         loss = loss_of_model[1]
         rank = rank_dict[idx]
-        if rank == 0:
-            reward = weight_best_miner
-        elif rank < top_10p_rank:
-            reward = 0.8 ** rank
+        if rank < top_20p_count:
+            reward = 0.9 ** rank
         else:
-            reward = (0.8 ** top_10p_rank) * (0.5 ** (rank - top_10p_rank))
+            reward = (0.9 ** top_20p_count) * (0.5 ** (rank - top_20p_count))
         rewards.append(reward)
 
     return torch.FloatTensor(rewards)

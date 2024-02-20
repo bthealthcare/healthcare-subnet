@@ -68,7 +68,7 @@ class UploadModelCallback(Callback):
             self.api = HfApi()
             self.username = self.api.whoami(access_token)["name"]
             self.repo_url = self.username + "/" + self.repo_name
-            self.api.create_repo(token=access_token, repo_id=self.repo_url, exist_ok = True)
+            self.api.create_repo(token=access_token, repo_id=repo_name, exist_ok = True)
         except Exception as e:
             bt.logging.error(f"❌ Error occured while creating a repository : {e}")
 
