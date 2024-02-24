@@ -74,7 +74,7 @@ class Miner(BaseMinerNeuron):
         
         access_token = os.getenv('ACCESS_TOKEN')
         if not access_token:
-            bt.logging.error(f"❌ Define ACCESS_TOKEN in .env file")
+            bt.logging.error(f"❌ Define ACCESS_TOKEN in .env file.")
             return synapse
 
         api = HfApi()

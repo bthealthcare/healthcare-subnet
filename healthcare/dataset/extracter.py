@@ -53,7 +53,7 @@ def download_dataset() -> bool:
     access_token = os.getenv('ACCESS_TOKEN')
     # Check if ACCESS_TOKEN is defined
     if not access_token:
-        bt.logging.error("❌ Please define the ACCESS_TOKEN")
+        bt.logging.error("❌ Please define the ACCESS_TOKEN.")
         return False
     
     # Download the dataset

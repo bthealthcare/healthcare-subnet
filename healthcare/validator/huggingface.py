@@ -59,9 +59,10 @@ def download(self, uid, repo_url) -> str:
         cache_dir = os.path.join(BASE_DIR, "healthcare/models/validator/cache")
         with suppress_stdout_stderr():
             snapshot_download(repo_id = repo_url, local_dir = local_dir, token = os.getenv('ACCESS_TOKEN'), cache_dir = cache_dir)
+        bt.logging.info(f"✅ Successfully downloaded the model of miner {uid}.")
         return local_dir
     except Exception as e:
-        # bt.logging.error(f"❌ Error occured while downloading {repo_url} : {e}")
+        bt.logging.error(f"❌ Error occured while downloading the model of miner {uid} : {e}")
         return ""
 
 def download_models(
@@ -79,7 +80,7 @@ def download_models(
     - List[str]: All the path to the model on system.
 
     """
-    bt.logging.info(f"⏬ Downloading models")
+    bt.logging.info(f"⏬ Downloading models ...")
     return [download(self, uids[idx], response) for idx, response in enumerate(responses)]
 
 def remove_models(
