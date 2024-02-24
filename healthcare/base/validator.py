@@ -254,10 +254,10 @@ class BaseValidatorNeuron(BaseNeuron):
         """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
 
         # Download the latest dataset from hugging face
-        bt.logging.info(f"⏬ Downloading dataset")
+        bt.logging.info(f"⏬ Downloading dataset ...")
         download_status = download_dataset()
         if download_status:
-            bt.logging.info(f"✅ Successfully downloaded the dataset")
+            bt.logging.info(f"✅ Successfully downloaded the dataset.")
 
         bt.logging.info("resync_metagraph()")
         # Copies state of metagraph before syncing.

@@ -128,7 +128,7 @@ class ModelTrainer:
         image_list, binary_output, dataframe = load_dataset(csv_path, image_dir)
                 
         if not binary_output:
-            bt.logging.error("❌ No images found")
+            bt.logging.error("❌ No images found.")
             return False, False, False
 
         train_gen = self.generate_data(image_list, binary_output, self.config.batch_size)
@@ -220,7 +220,7 @@ class ModelTrainer:
         # Define upload_callback
         access_token = os.getenv('ACCESS_TOKEN')
         if not access_token:
-            bt.logging.error(f"❌ Define ACCESS_TOKEN in .env file")
+            bt.logging.error(f"❌ Define ACCESS_TOKEN in .env file.")
             return
 
         model_directory = os.path.join(BASE_DIR, 'healthcare/models', self.model_type)

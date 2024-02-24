@@ -41,18 +41,16 @@ def suppress_stdout_stderr():
         finally:
             sys.stdout, sys.stderr = old_stdout, old_stderr
 
-def get_loss(model_path: str) -> float:
+def get_loss(model_paths: List[str], uids: List[int]) -> float:
     """
     This method returns a loss value for the model, which is used to update the miner's score.
 
     Args:
-    - model_path (str): The path of model.
+    - model_paths (List[str]): The path of models.
 
     Returns:
-    - float: The loss value for the model.
+    - List[int, float]: The loss value for the models.
     """
-    if not model_path:
-        return float('inf')
     try:
         # Load dataset
         csv_path = os.path.join(BASE_DIR, 'healthcare/dataset/validator/Data_Entry.csv')
@@ -68,34 +66,34 @@ def get_loss(model_path: str) -> float:
                 continue
             x_input.append(img)
             y_output.append(binary_output[idx])
-
-        # Determine how many pairs you want to select
-        n_pairs = 32
-
-        # Generate a list of indices based on the length of the lists
-        indices = list(range(len(x_input)))
-
-        # Randomly select n indices
-        selected_indices = random.sample(indices, n_pairs)
-
-        # Create new lists by selecting elements from the original lists based on the selected indices
-        new_x_input = [x_input[i] for i in selected_indices]
-        new_y_output = [y_output[i] for i in selected_indices]
-
-        # Load model
-        model = load_model(model_path)
-
-        # Evaluate loss and accuracy
-        with suppress_stdout_stderr():
-            loss, accuracy = model.evaluate(np.array(x_input), np.array(y_output), verbose=0)
-        return loss
+        bt.logging.info(f"✅ Successfully loaded dataset.")
     except Exception as e:
-        # bt.logging.error(f"❌ Error occured while loading model {model_path} : {e}")
-        return float('inf')
+        bt.logging.error(f"❌ Error occured while loading dataset : {e}")
+        return []
+
+    # Load model
+    loss_of_models = []
+    for idx, model_path in enumerate(model_paths):
+        # Check if model exists
+        if not model_path:
+            loss = float('inf')
+        else:
+            bt.logging.info(f"⚒️  Processing the model of miner {uids[idx]} ...")
+            try:
+                model = load_model(model_path)
+                # Evaluate loss and accuracy
+                with suppress_stdout_stderr():
+                    loss, accuracy = model.evaluate(np.array(x_input), np.array(y_output), verbose=0)
+            except Exception as e:
+                bt.logging.error(f"❌ Error occured while loading model : {e}")
+                loss = float('inf')
+        loss_of_models.append([idx, loss])
+    return loss_of_models
 
 def get_rewards(
     self,
     model_paths: List[str],
+    uids: List[int]
 ) -> torch.FloatTensor:
     """
     Returns a tensor of rewards for the given models.
@@ -106,9 +104,9 @@ def get_rewards(
     Returns:
     - torch.FloatTensor: A tensor of rewards for the given models.
     """
-    bt.logging.info(f"♏ Evaluating models")
+    bt.logging.info(f"♏ Evaluating models ...")
     # Calculate loss of models
-    loss_of_models = [[idx, get_loss(model_path)] for idx, model_path in enumerate(model_paths)]
+    loss_of_models = get_loss(model_paths, uids)
 
     # Sort the list by the value, keeping track of original indices
     sorted_loss = sorted((value, idx) for idx, value in loss_of_models)
@@ -118,14 +116,17 @@ def get_rewards(
     current_rank = 0
     for i, (value, index) in enumerate(sorted_loss):
         if i > 0 and value != sorted_loss[i - 1][0]:
-            current_rank += 1
+            current_rank = i
         rank_dict[index] = current_rank
 
     # Define weight for the best miner
-    weight_best_miner = 20
+    weight_best_miner = 2
 
     # Define groupA and groupB
-    top_10p_rank = current_rank / 10 + 1
+    group_A_rank = current_rank / 20 + 1
+
+    alpha_A = 0.95
+    alpha_B = 0.9
 
     # Calculate reward for miners
     rewards = []
@@ -135,10 +136,10 @@ def get_rewards(
         rank = rank_dict[idx]
         if rank == 0:
             reward = weight_best_miner
-        elif rank < top_10p_rank:
-            reward = 0.8 ** rank
+        elif rank < group_A_rank:
+            reward = alpha_A ** rank
         else:
-            reward = (0.8 ** top_10p_rank) * (0.5 ** (rank - top_10p_rank))
+            reward = (alpha_A ** group_A_rank) * (alpha_B ** (rank - group_A_rank))
         rewards.append(reward)
 
     return torch.FloatTensor(rewards)
