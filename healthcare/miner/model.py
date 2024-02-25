@@ -154,7 +154,7 @@ class ModelTrainer:
                 Flatten(),
                 Dense(128, activation='relu'),
                 Dropout(0.5),
-                Dense(num_classes, activation='softmax')
+                Dense(num_classes, activation='sigmoid')
             ])
 
             model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
@@ -168,7 +168,7 @@ class ModelTrainer:
             # Add custom layers
             x = GlobalAveragePooling2D()(base_model_vgg.output)
             x = Dense(1024, activation='relu')(x)
-            predictions = Dense(num_classes, activation='softmax')(x)
+            predictions = Dense(num_classes, activation='sigmoid')(x)
 
             model = Model(inputs=base_model_vgg.input, outputs=predictions)
             model.compile(optimizer=Adam(learning_rate=0.0001), loss='binary_crossentropy', metrics=['accuracy'])
@@ -181,7 +181,7 @@ class ModelTrainer:
             # Add custom layers
             x = GlobalAveragePooling2D()(base_model_res.output)
             x = Dense(1024, activation='relu')(x)
-            predictions = Dense(num_classes, activation='softmax')(x)
+            predictions = Dense(num_classes, activation='sigmoid')(x)
 
             model = Model(inputs=base_model_res.input, outputs=predictions)
             model.compile(optimizer=Adam(learning_rate=0.0001), loss='binary_crossentropy', metrics=['accuracy'])
@@ -194,7 +194,7 @@ class ModelTrainer:
             # Add custom layers
             x = GlobalAveragePooling2D()(base_model_efficient.output)
             x = Dense(1024, activation='relu')(x)
-            predictions = Dense(num_classes, activation='softmax')(x)
+            predictions = Dense(num_classes, activation='sigmoid')(x)
 
             model = Model(inputs=base_model_efficient.input, outputs=predictions)
             model.compile(optimizer=Adam(learning_rate=0.0001), loss='binary_crossentropy', metrics=['accuracy'])
@@ -207,7 +207,7 @@ class ModelTrainer:
             # Add custom layers
             x = GlobalAveragePooling2D()(base_model_mobile.output)
             x = Dense(1024, activation='relu')(x)
-            predictions = Dense(num_classes, activation='softmax')(x)
+            predictions = Dense(num_classes, activation='sigmoid')(x)
 
             model = Model(inputs=base_model_mobile.input, outputs=predictions)
             model.compile(optimizer=Adam(learning_rate=0.0001), loss='binary_crossentropy', metrics=['accuracy'])
