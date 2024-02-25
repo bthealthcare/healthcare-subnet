@@ -246,12 +246,14 @@ class ModelTrainer:
                     train_generator,
                     steps_per_epoch=len(train_df) // self.config.batch_size,  # Adjust based on your batch size
                     epochs=1,  # Number of epochs
-                    callbacks=[early_stopping, upload_callback]
+                    callbacks=[early_stopping, upload_callback],
+                    verbose=2
                 )
         else:
             history = model.fit(
                 train_generator,
                 steps_per_epoch=len(train_df) // self.config.batch_size,  # Adjust based on your batch size
                 epochs=self.config.num_epochs,  # Number of epochs
-                callbacks=[early_stopping, upload_callback]
+                callbacks=[early_stopping, upload_callback],
+                verbose=2
             )
