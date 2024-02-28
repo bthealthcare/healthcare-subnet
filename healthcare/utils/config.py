@@ -202,7 +202,7 @@ def add_args(cls, parser):
         parser.add_argument(
             "--model_type",
             type = str,
-            default = "cnn",
+            default = "vgg",
             help="The architecture and structure of the neural network used for training."
         )
         
