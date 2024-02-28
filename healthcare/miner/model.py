@@ -101,7 +101,7 @@ class ModelTrainer:
     def __init__(self, config, hotkey):
         self.config = config
         user_input_model_type = config.model_type.lower()
-        self.model_type = user_input_model_type if user_input_model_type in ['vgg', 'res', 'efficient', 'mobile'] else 'cnn'
+        self.model_type = user_input_model_type if user_input_model_type in ['vgg', 'res', 'efficient', 'mobile', 'vit'] else 'cnn'
         self.device = config.device
         self.training_mode = config.training_mode.lower()
         self.hotkey = hotkey
