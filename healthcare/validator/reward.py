@@ -20,10 +20,12 @@ import os
 import random
 import shutil
 import sys
+from datetime import datetime
 from contextlib import contextmanager
 import torch
 import numpy as np
 import bittensor as bt
+import requests
 from typing import List
 from tensorflow.keras.models import load_model
 from healthcare.dataset.dataset import load_dataset, load_and_preprocess_image
@@ -41,7 +43,40 @@ def suppress_stdout_stderr():
         finally:
             sys.stdout, sys.stderr = old_stdout, old_stderr
 
-def get_loss(model_paths: List[str], uids: List[int]) -> float:
+def get_last_commit_time(model_paths: List[str]):
+    """
+    This method returns the last commit time of the models.
+
+    Args:
+    - model_paths (List[str]): The path of models.
+
+    Returns:
+    - List[int]: The last commit time of the models in the form of integer.
+    """
+    last_commit_time = []
+    for model_path in model_paths:
+        try:
+            api_url = f"https://huggingface.co/api/models/{model_path}"
+            response = requests.get(api_url)
+
+            if response.status_code == 200:
+                model_info = response.json()
+                commit_time = model_info.get("lastModified")
+                
+                # Parse the date string to a datetime object
+                date_obj = datetime.fromisoformat(commit_time[:-1])  # Removing 'Z' at the end
+
+                # Convert the datetime object to UNIX timestamp (integer)
+                timestamp = int(date_obj.timestamp())
+
+                last_commit_time.append(timestamp)
+            else:
+                last_commit_time.append(float('inf'))
+        except Exception as e:
+            last_commit_time.append(float('inf'))
+    return last_commit_time
+
+def get_loss(model_paths: List[str], uids: List[int]):
     """
     This method returns a loss value for the model, which is used to update the miner's score.
 
@@ -93,7 +128,8 @@ def get_loss(model_paths: List[str], uids: List[int]) -> float:
 def get_rewards(
     self,
     model_paths: List[str],
-    uids: List[int]
+    uids: List[int],
+    responses: List[str]
 ) -> torch.FloatTensor:
     """
     Returns a tensor of rewards for the given models.
@@ -105,6 +141,10 @@ def get_rewards(
     - torch.FloatTensor: A tensor of rewards for the given models.
     """
     bt.logging.info(f"♏ Evaluating models ...")
+    # Get the last commit time of models
+    last_commit_time = get_last_commit_time(responses)
+    latest_time = float('inf')
+
     # Calculate loss of models
     loss_of_models = get_loss(model_paths, uids)
 
@@ -117,6 +157,8 @@ def get_rewards(
     for i, (value, index) in enumerate(sorted_loss):
         if i > 0 and value != sorted_loss[i - 1][0]:
             current_rank = i
+        if current_rank == 0 and last_commit_time[index] < latest_time:
+            latest_time = last_commit_time[index]
         rank_dict[index] = current_rank
 
     # Define weight for the best miner
@@ -134,7 +176,7 @@ def get_rewards(
         idx = loss_of_model[0]
         loss = loss_of_model[1]
         rank = rank_dict[idx]
-        if rank == 0:
+        if rank == 0 and last_commit_time[idx] == latest_time:
             reward = weight_best_miner
         elif rank < group_A_rank:
             reward = alpha_A ** rank
