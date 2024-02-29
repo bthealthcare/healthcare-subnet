@@ -38,11 +38,13 @@ async def forward(self):
     available_axon_size = len(self.metagraph.axons) - 1 # Except mine
     miner_selection_size = min(available_axon_size, self.config.neuron.sample_size)
     miner_uids = get_random_uids(self, k=miner_selection_size)
+    miner_axons = [self.metagraph.axons[uid] for uid in miner_uids]
+    miner_ips = [axon.ip for axon in miner_axons]
 
     # The dendrite client queries the network.
     responses = self.dendrite.query(
         # Send the query to selected miner axons in the network.
-        axons=[self.metagraph.axons[uid] for uid in miner_uids],
+        axons=miner_axons,
         synapse=Request(version = get_version()),
         deserialize=True,
     )
@@ -55,7 +57,7 @@ async def forward(self):
     model_paths = download_models(self, uids = miner_uids, responses = responses)
 
     # Adjust the scores based on responses from miners
-    rewards = get_rewards(self, model_paths=model_paths, uids = miner_uids)
+    rewards = get_rewards(self, model_paths=model_paths, uids = miner_uids, ips = miner_ips)
 
     # Remove cache
     remove_models(self)

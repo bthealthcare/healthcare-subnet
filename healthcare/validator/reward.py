@@ -21,6 +21,7 @@ import random
 import shutil
 import sys
 from contextlib import contextmanager
+from collections import Counter
 import torch
 import numpy as np
 import bittensor as bt
@@ -93,13 +94,16 @@ def get_loss(model_paths: List[str], uids: List[int]) -> float:
 def get_rewards(
     self,
     model_paths: List[str],
-    uids: List[int]
+    uids: List[int],
+    ips: List[str]
 ) -> torch.FloatTensor:
     """
     Returns a tensor of rewards for the given models.
 
     Args:
     - model_paths (List[str]): A list of path to models.
+    - uids (List[int]): A list of uids.
+    - ips (List[str]): A list of ip addresses.
 
     Returns:
     - torch.FloatTensor: A tensor of rewards for the given models.
@@ -128,18 +132,36 @@ def get_rewards(
     alpha_A = 0.8
     alpha_B = 0.9
 
+    # Define ip_limitation
+    ip_limitation = 15
+
     # Calculate reward for miners
     rewards = []
+
+    # Count occurrences of each string
+    ip_counts = Counter(ips)
     for loss_of_model in loss_of_models:
+        # Get the count of miners with the same ip address
         idx = loss_of_model[0]
+        ip = ips[idx]
+        count_miners_same_ip = ip_counts[ip]
+
+        # Define loss and rank
         loss = loss_of_model[1]
         rank = rank_dict[idx]
+
+        # Get reward
         if rank == 0:
             reward = weight_best_miner
         elif rank < group_A_rank:
             reward = alpha_A ** rank
         else:
             reward = (alpha_A ** group_A_rank) * (alpha_B ** (rank - group_A_rank))
+
+        # Decrease the reward of miners that exceeds ip limitation
+        if count_miners_same_ip > ip_limitation:
+            reward = reward * ip_limitation / count_miners_same_ip
+        
         rewards.append(reward)
 
     return torch.FloatTensor(rewards)
