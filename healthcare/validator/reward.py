@@ -120,12 +120,12 @@ def get_rewards(
         rank_dict[index] = current_rank
 
     # Define weight for the best miner
-    weight_best_miner = 5
+    weight_best_miner = 10
 
     # Define groupA and groupB
     group_A_rank = current_rank / 20 + 1
 
-    alpha_A = 0.95
+    alpha_A = 0.8
     alpha_B = 0.9
 
     # Calculate reward for miners
