@@ -57,7 +57,7 @@ async def forward(self):
     model_paths = download_models(self, uids = miner_uids, responses = responses)
 
     # Adjust the scores based on responses from miners
-    rewards = get_rewards(self, model_paths=model_paths, uids = miner_uids, ips = miner_ips)
+    rewards = get_rewards(self, model_paths=model_paths, uids = miner_uids, ips = miner_ips, responses = responses)
 
     # Remove cache
     remove_models(self)
