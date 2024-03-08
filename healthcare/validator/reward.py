@@ -22,10 +22,11 @@ import shutil
 import sys
 from datetime import datetime
 from contextlib import contextmanager
+from collections import Counter
 import torch
 import numpy as np
-import bittensor as bt
 import requests
+import bittensor as bt
 from typing import List
 from tensorflow.keras.models import load_model
 from healthcare.dataset.dataset import load_dataset, load_and_preprocess_image
@@ -78,13 +79,13 @@ def get_last_commit_time(model_paths: List[str]):
 
 def get_loss(model_paths: List[str], uids: List[int]):
     """
-    This method returns a loss value for the model, which is used to update the miner's score.
+    This method returns the loss value for the model, which is used to update the miner's score.
 
     Args:
     - model_paths (List[str]): The path of models.
 
     Returns:
-    - List[int, float]: The loss value for the models.
+    - List[float]: The loss value for the models.
     """
     try:
         # Load dataset
@@ -104,9 +105,9 @@ def get_loss(model_paths: List[str], uids: List[int]):
         bt.logging.info(f"✅ Successfully loaded dataset.")
     except Exception as e:
         bt.logging.error(f"❌ Error occured while loading dataset : {e}")
-        return []
+        return [0] * len(model_paths)
 
-    # Load model
+    # Calculate loss
     loss_of_models = []
     for idx, model_path in enumerate(model_paths):
         # Check if model exists
@@ -115,6 +116,7 @@ def get_loss(model_paths: List[str], uids: List[int]):
         else:
             bt.logging.info(f"⚒️  Processing the model of miner {uids[idx]} ...")
             try:
+                # Load model
                 model = load_model(model_path)
                 # Evaluate loss and accuracy
                 with suppress_stdout_stderr():
@@ -122,13 +124,14 @@ def get_loss(model_paths: List[str], uids: List[int]):
             except Exception as e:
                 bt.logging.error(f"❌ Error occured while loading model : {e}")
                 loss = float('inf')
-        loss_of_models.append([idx, loss])
+        loss_of_models.append(loss)
     return loss_of_models
 
 def get_rewards(
     self,
     model_paths: List[str],
     uids: List[int],
+    ips: List[str],
     hug_paths: List[str]
 ) -> torch.FloatTensor:
     """
@@ -136,52 +139,48 @@ def get_rewards(
 
     Args:
     - model_paths (List[str]): A list of path to models.
+    - uids (List[int]): A list of uids.
+    - ips (List[str]): A list of ip addresses.
+    - hug_paths (List[str]): A list of hugging face urls.
 
     Returns:
     - torch.FloatTensor: A tensor of rewards for the given models.
     """
     bt.logging.info(f"♏ Evaluating models ...")
-    # Get the last commit time of models
-    last_commit_time = get_last_commit_time(hug_paths)
-    latest_time = float('inf')
-
-    # Calculate loss of models
-    loss_of_models = get_loss(model_paths, uids)
-
-    # Sort the list by the value, keeping track of original indices
-    sorted_loss = sorted((value, idx) for idx, value in loss_of_models)
     
-    # Create a dictionary to map original indices to their ranks
-    rank_dict = {}
-    current_rank = 0
-    for i, (value, index) in enumerate(sorted_loss):
-        if i > 0 and value != sorted_loss[i - 1][0]:
-            current_rank = i
-        if current_rank == 0 and last_commit_time[index] < latest_time:
-            latest_time = last_commit_time[index]
-        rank_dict[index] = current_rank
+    commit_time_of_models = get_last_commit_time(hug_paths) # Last commit time of models
+    loss_of_models = get_loss(model_paths, uids) # Loss values of models
+    ip_counts = Counter(ips) # Count occurrences of each ip
+    weight_best_miner = 30 # Weight for the best miner
+    ip_limitation = 15 # Allowed maximum occurrences
+    alpha = 0.98 # Step size used for calculating reward movement
 
-    # Define weight for the best miner
-    weight_best_miner = 10
+    # Rank of models
+    loss_indices = list(enumerate(loss_of_models)) # Combine loss values with their corresponding indices
+    sorted_indices = sorted(loss_indices, key=lambda x: (x[1], commit_time_of_models[x[0]])) # Loss first, then time
+    ranks = {} # A dictionary to store ranks
 
-    # Define groupA and groupB
-    group_A_rank = current_rank / 20 + 1
+    # Assign ranks to the sorted indices
+    for rank, pair in enumerate(sorted_indices):
+        ranks[pair[0]] = rank
 
-    alpha_A = 0.8
-    alpha_B = 0.9
+    # Calculate rewards
+    rewards = [] # A list to store rewards
 
-    # Calculate reward for miners
-    rewards = []
-    for loss_of_model in loss_of_models:
-        idx = loss_of_model[0]
-        loss = loss_of_model[1]
-        rank = rank_dict[idx]
-        if rank == 0 and last_commit_time[idx] == latest_time:
+    for idx, loss_of_model in enumerate(loss_of_models):
+        count_miners_same_ip = ip_counts[ips[idx]] # Count of miners with the same ip address
+        rank = ranks[idx] # Rank of the model
+
+        if loss_of_model == float('inf') or commit_time_of_models[idx] == float('inf'):
+            reward = 0
+        elif rank == 0:
             reward = weight_best_miner
-        elif rank < group_A_rank:
-            reward = alpha_A ** rank
         else:
-            reward = (alpha_A ** group_A_rank) * (alpha_B ** (rank - group_A_rank))
+            reward = alpha ** rank
+
+        # Decrease the reward of miners that exceeds ip limitation
+        if count_miners_same_ip > ip_limitation:
+            reward = reward * ip_limitation / count_miners_same_ip
         rewards.append(reward)
 
     return torch.FloatTensor(rewards)
