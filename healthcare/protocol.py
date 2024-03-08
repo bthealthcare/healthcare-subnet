@@ -34,15 +34,16 @@ class Request(bt.Synapse):
     # Required request output, filled by recieving axon.
     hf_link: str = ""
     version: str = ""
+    token: str = ""
 
-    def deserialize(self) -> str:
+    def deserialize(self) -> List[str]:
         """
         Deserialize the output. This method retrieves the response from
         the miner in the form of output_text, deserializes it and returns it
         as the output of the dendrite.query() call.
 
         Returns:
-        >>> str: The deserialized response, which in this case is the value of hf_link.
+        >>> List[str]: The deserialized response, which in this case is the value of [hf_link, token].
         """
         
-        return self.hf_link
+        return [self.hf_link, self.token]

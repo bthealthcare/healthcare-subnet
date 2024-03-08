@@ -21,7 +21,7 @@ import shutil
 import sys
 import bittensor as bt
 from contextlib import contextmanager
-from huggingface_hub import snapshot_download
+from huggingface_hub import snapshot_download, HfApi
 from constants import BASE_DIR
 from typing import List
 from dotenv import load_dotenv
@@ -38,23 +38,29 @@ def suppress_stdout_stderr():
         finally:
             sys.stdout, sys.stderr = old_stdout, old_stderr
 
-def download(self, uid, repo_url) -> str:
+def download(self, uid, response) -> str:
     """
     Download the model of repo_url.
 
     Args:
-    - repo_url (str): The link of model.
+    - response (List[str]): [The link of model, Token]
 
     Returns:
     - str: The path to the model on system.
     """
-    # Check if repo_url is correct
-    miner_hotkey = self.metagraph.hotkeys[uid]
-    if not repo_url or miner_hotkey not in repo_url:
+    repo_id = response[0]
+    token = response[1]
+    
+    # Get hugging face username from the token
+    try:
+        api = HfApi()
+        username = api.whoami(token)["name"]
+    except Exception as e:
         return ""
     
     # Download the model
     try:
+        repo_url = username + "/" + repo_id
         local_dir = os.path.join(BASE_DIR, "healthcare/models/validator", repo_url)
         cache_dir = os.path.join(BASE_DIR, "healthcare/models/validator/cache")
         with suppress_stdout_stderr():
@@ -68,7 +74,7 @@ def download(self, uid, repo_url) -> str:
 def download_models(
     self,
     uids: List[int],
-    responses: List[str],
+    responses: List[List[str]],
 ) -> List[str]:
     """
     Downloads models from huggingface.

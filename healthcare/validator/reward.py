@@ -129,7 +129,7 @@ def get_rewards(
     self,
     model_paths: List[str],
     uids: List[int],
-    responses: List[str]
+    hug_paths: List[str]
 ) -> torch.FloatTensor:
     """
     Returns a tensor of rewards for the given models.
@@ -142,7 +142,7 @@ def get_rewards(
     """
     bt.logging.info(f"♏ Evaluating models ...")
     # Get the last commit time of models
-    last_commit_time = get_last_commit_time(responses)
+    last_commit_time = get_last_commit_time(hug_paths)
     latest_time = float('inf')
 
     # Calculate loss of models
