@@ -32,8 +32,6 @@ from healthcare.base.miner import BaseMinerNeuron
 from huggingface_hub import HfApi, Repository
 from constants import BASE_DIR
 from dotenv import load_dotenv
-load_dotenv()
-
 
 class Miner(BaseMinerNeuron):
     """
@@ -47,6 +45,7 @@ class Miner(BaseMinerNeuron):
     def __init__(self, config=None):
         super(Miner, self).__init__(config=config)
         
+        load_dotenv()
         env_file_path = os.path.join(BASE_DIR, ".env")
 
         # Check if the .env file exists, if not, create it
