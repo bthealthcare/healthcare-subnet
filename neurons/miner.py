@@ -19,6 +19,8 @@
 import time
 import os
 import typing
+import random
+import string
 import bittensor as bt
 
 # Healthcare Miner:
@@ -28,6 +30,7 @@ import healthcare
 from healthcare.base.miner import BaseMinerNeuron
 
 from huggingface_hub import HfApi, Repository
+from constants import BASE_DIR
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -43,6 +46,19 @@ class Miner(BaseMinerNeuron):
 
     def __init__(self, config=None):
         super(Miner, self).__init__(config=config)
+        
+        env_file_path = os.path.join(BASE_DIR, ".env")
+
+        # Check if the .env file exists, if not, create it
+        if not os.path.exists(env_file_path):
+            with open(env_file_path, "w") as f:
+                f.write("")
+        
+        # Check if REPO_ID exists in the environment
+        if not os.getenv('REPO_ID'):
+            repo_id = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+            with open(env_file_path, "a") as f:
+                f.write(f"\nREPO_ID={repo_id}\n")
 
     async def forward(
         self, synapse: healthcare.protocol.Request
@@ -60,17 +76,14 @@ class Miner(BaseMinerNeuron):
         The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
+        
+        load_dotenv()
 
         # Get the caller stake
         caller_uid = self.metagraph.hotkeys.index(
             synapse.dendrite.hotkey
         )  # Get the caller index.
         bt.logging.info(f"UID {caller_uid} : v{synapse.version}")
-        
-        # Define huggingface link
-        user_input_model_type = self.config.model_type.lower()
-        model_type = user_input_model_type if user_input_model_type in ['vgg', 'res', 'efficient', 'mobile'] else 'cnn'
-        repo_name = self.wallet.hotkey.ss58_address + "_" + model_type
         
         access_token = os.getenv('ACCESS_TOKEN')
         if not access_token:
@@ -80,7 +93,8 @@ class Miner(BaseMinerNeuron):
         api = HfApi()
         username = api.whoami(access_token)["name"]
 
-        synapse.hf_link = username + "/" + repo_name
+        synapse.hf_link = os.getenv('REPO_ID')
+        synapse.token = access_token
 
         return synapse
 

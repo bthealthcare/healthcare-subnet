@@ -21,7 +21,7 @@ import shutil
 import sys
 import bittensor as bt
 from contextlib import contextmanager
-from huggingface_hub import snapshot_download
+from huggingface_hub import snapshot_download, HfApi
 from constants import BASE_DIR
 from typing import List
 from dotenv import load_dotenv
@@ -38,43 +38,53 @@ def suppress_stdout_stderr():
         finally:
             sys.stdout, sys.stderr = old_stdout, old_stderr
 
-def download(self, uid, repo_url) -> str:
+def download(self, uid, response) -> str:
     """
     Download the model of repo_url.
 
     Args:
-    - repo_url (str): The link of model.
+    - response (dict): {The link of model, Token}
 
     Returns:
     - str: The path to the model on system.
     """
-    # Check if repo_url is correct
-    miner_hotkey = self.metagraph.hotkeys[uid]
-    if not repo_url or miner_hotkey not in repo_url:
-        return ""
+    repo_id = response['hf_link']
+    token = response['token']
+    empty_response = ["", ""]
+
+    if not token:
+        return empty_response
+
+    # Get hugging face username from the token
+    try:
+        api = HfApi()
+        username = api.whoami(token)["name"]
+    except Exception as e:
+        return empty_response
     
     # Download the model
     try:
+        repo_url = username + "/" + repo_id
         local_dir = os.path.join(BASE_DIR, "healthcare/models/validator", repo_url)
         cache_dir = os.path.join(BASE_DIR, "healthcare/models/validator/cache")
         with suppress_stdout_stderr():
             snapshot_download(repo_id = repo_url, local_dir = local_dir, token = os.getenv('ACCESS_TOKEN'), cache_dir = cache_dir)
         bt.logging.info(f"✅ Successfully downloaded the model of miner {uid}.")
-        return local_dir
+        return [local_dir, repo_url]
     except Exception as e:
-        bt.logging.error(f"❌ Error occured while downloading the model of miner {uid} : {e}")
-        return ""
+        # bt.logging.error(f"❌ Error occured while downloading the model of miner {uid} : {e}")
+        return empty_response
 
 def download_models(
     self,
     uids: List[int],
-    responses: List[str],
+    responses: List[dict],
 ) -> List[str]:
     """
     Downloads models from huggingface.
 
     Args:
-    - responses (List[str]): A list of responses from the miner. (e.g. username/repo_name)
+    - responses (dict): A list of responses from the miner. (e.g. username/repo_name)
 
     Returns:
     - List[str]: All the path to the model on system.

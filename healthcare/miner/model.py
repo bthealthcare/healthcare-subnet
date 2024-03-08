@@ -57,17 +57,17 @@ def suppress_stdout_stderr():
             sys.stdout, sys.stderr = old_stdout, old_stderr
 
 class UploadModelCallback(Callback):
-    def __init__(self, monitor, repo_name, model_directory, access_token):
+    def __init__(self, monitor, model_directory, access_token):
         self.monitor = monitor
         self.best = float('inf')
-        self.repo_name = repo_name
         self.model_directory = model_directory
         self.access_token = access_token
         HfFolder.save_token(access_token)
         try:
+            load_dotenv()
             self.api = HfApi()
             self.username = self.api.whoami(access_token)["name"]
-            self.repo_url = self.username + "/" + self.repo_name
+            self.repo_url = self.username + "/" + os.getenv('REPO_ID')
             self.api.create_repo(token=access_token, repo_id=self.repo_url, exist_ok = True)
         except Exception as e:
             bt.logging.error(f"❌ Error occured while creating a repository : {e}")
@@ -224,11 +224,9 @@ class ModelTrainer:
             return
 
         model_directory = os.path.join(BASE_DIR, 'healthcare/models', self.model_type)
-        repo_name = self.hotkey + "_" + self.model_type
 
         upload_callback = UploadModelCallback(
             monitor='loss',
-            repo_name=repo_name,
             model_directory=model_directory,
             access_token=access_token
         )

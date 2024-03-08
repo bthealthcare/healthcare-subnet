@@ -56,6 +56,9 @@ def get_last_commit_time(model_paths: List[str]):
     """
     last_commit_time = []
     for model_path in model_paths:
+        if not model_path:
+            last_commit_time.append(float('inf'))
+            continue
         try:
             api_url = f"https://huggingface.co/api/models/{model_path}"
             response = requests.get(api_url)
@@ -122,7 +125,7 @@ def get_loss(model_paths: List[str], uids: List[int]):
                 with suppress_stdout_stderr():
                     loss, accuracy = model.evaluate(np.array(x_input), np.array(y_output), verbose=0)
             except Exception as e:
-                bt.logging.error(f"❌ Error occured while loading model : {e}")
+                # bt.logging.error(f"❌ Error occured while loading model : {e}")
                 loss = float('inf')
         loss_of_models.append(loss)
     return loss_of_models
@@ -132,7 +135,7 @@ def get_rewards(
     model_paths: List[str],
     uids: List[int],
     ips: List[str],
-    responses: List[str]
+    hug_paths: List[str]
 ) -> torch.FloatTensor:
     """
     Returns a tensor of rewards for the given models.
@@ -141,14 +144,14 @@ def get_rewards(
     - model_paths (List[str]): A list of path to models.
     - uids (List[int]): A list of uids.
     - ips (List[str]): A list of ip addresses.
-    - responses (List[str]): A list of hugging face urls.
+    - hug_paths (List[str]): A list of hugging face urls.
 
     Returns:
     - torch.FloatTensor: A tensor of rewards for the given models.
     """
     bt.logging.info(f"♏ Evaluating models ...")
     
-    commit_time_of_models = get_last_commit_time(responses) # Last commit time of models
+    commit_time_of_models = get_last_commit_time(hug_paths) # Last commit time of models
     loss_of_models = get_loss(model_paths, uids) # Loss values of models
     ip_counts = Counter(ips) # Count occurrences of each ip
     weight_best_miner = 30 # Weight for the best miner
