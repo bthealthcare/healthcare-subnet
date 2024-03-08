@@ -54,10 +54,11 @@ async def forward(self):
         return
 
     # Download models
-    model_paths = download_models(self, uids = miner_uids, responses = responses)
+    paths = download_models(self, uids = miner_uids, responses = responses)
 
     # Adjust the scores based on responses from miners
-    hug_paths = [response[0] for response in responses]
+    model_paths = [path[0] for path in paths]
+    hug_paths = [path[1] for path in paths]
     rewards = get_rewards(self, model_paths=model_paths, uids = miner_uids, ips = miner_ips, hug_paths = hug_paths)
 
     # Remove cache

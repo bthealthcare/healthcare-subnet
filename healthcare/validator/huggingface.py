@@ -50,13 +50,17 @@ def download(self, uid, response) -> str:
     """
     repo_id = response['hf_link']
     token = response['token']
-    
+    empty_response = ["", ""]
+
+    if not token:
+        return empty_response
+
     # Get hugging face username from the token
     try:
         api = HfApi()
         username = api.whoami(token)["name"]
     except Exception as e:
-        return ""
+        return empty_response
     
     # Download the model
     try:
@@ -66,10 +70,10 @@ def download(self, uid, response) -> str:
         with suppress_stdout_stderr():
             snapshot_download(repo_id = repo_url, local_dir = local_dir, token = os.getenv('ACCESS_TOKEN'), cache_dir = cache_dir)
         bt.logging.info(f"✅ Successfully downloaded the model of miner {uid}.")
-        return local_dir
+        return [local_dir, repo_url]
     except Exception as e:
-        bt.logging.error(f"❌ Error occured while downloading the model of miner {uid} : {e}")
-        return ""
+        # bt.logging.error(f"❌ Error occured while downloading the model of miner {uid} : {e}")
+        return empty_response
 
 def download_models(
     self,
