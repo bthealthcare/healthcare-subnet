@@ -36,7 +36,7 @@ class Request(bt.Synapse):
     version: str = ""
     token: str = ""
 
-    def deserialize(self) -> List[str]:
+    def deserialize(self) -> dict:
         """
         Deserialize the output. This method retrieves the response from
         the miner in the form of output_text, deserializes it and returns it
@@ -46,4 +46,4 @@ class Request(bt.Synapse):
         >>> List[str]: The deserialized response, which in this case is the value of [hf_link, token].
         """
         
-        return [self.hf_link, self.token]
+        return {'hf_link': self.hf_link, 'token':self.token}

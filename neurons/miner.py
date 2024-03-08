@@ -46,19 +46,19 @@ class Miner(BaseMinerNeuron):
 
     def __init__(self, config=None):
         super(Miner, self).__init__(config=config)
-        # Check if REPO_ID exists in the environment
-        if not os.getenv('REPO_ID'):
-            repo_id = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
-
+        
         env_file_path = os.path.join(BASE_DIR, ".env")
 
         # Check if the .env file exists, if not, create it
         if not os.path.exists(env_file_path):
             with open(env_file_path, "w") as f:
                 f.write("")
-
-        with open(env_file_path, "a") as f:
-            f.write(f"\nREPO_ID={repo_id}\n")
+        
+        # Check if REPO_ID exists in the environment
+        if not os.getenv('REPO_ID'):
+            repo_id = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+            with open(env_file_path, "a") as f:
+                f.write(f"\nREPO_ID={repo_id}\n")
 
     async def forward(
         self, synapse: healthcare.protocol.Request
@@ -85,9 +85,6 @@ class Miner(BaseMinerNeuron):
         )  # Get the caller index.
         bt.logging.info(f"UID {caller_uid} : v{synapse.version}")
         
-        # Define huggingface link
-        repo_name = self.wallet.hotkey.ss58_address + "_" + model_type
-        
         access_token = os.getenv('ACCESS_TOKEN')
         if not access_token:
             bt.logging.error(f"❌ Define ACCESS_TOKEN in .env file.")
@@ -96,8 +93,8 @@ class Miner(BaseMinerNeuron):
         api = HfApi()
         username = api.whoami(access_token)["name"]
 
-        synapse.hf_link = username + "/" + repo_name
-        synapse.token = os.getenv('REPO_ID')
+        synapse.hf_link = os.getenv('REPO_ID')
+        synapse.token = access_token
 
         return synapse
 

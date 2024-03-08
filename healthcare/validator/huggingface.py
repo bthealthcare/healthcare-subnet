@@ -43,13 +43,13 @@ def download(self, uid, response) -> str:
     Download the model of repo_url.
 
     Args:
-    - response (List[str]): [The link of model, Token]
+    - response (dict): {The link of model, Token}
 
     Returns:
     - str: The path to the model on system.
     """
-    repo_id = response[0]
-    token = response[1]
+    repo_id = response['hf_link']
+    token = response['token']
     
     # Get hugging face username from the token
     try:
@@ -74,13 +74,13 @@ def download(self, uid, response) -> str:
 def download_models(
     self,
     uids: List[int],
-    responses: List[List[str]],
+    responses: List[dict],
 ) -> List[str]:
     """
     Downloads models from huggingface.
 
     Args:
-    - responses (List[str]): A list of responses from the miner. (e.g. username/repo_name)
+    - responses (dict): A list of responses from the miner. (e.g. username/repo_name)
 
     Returns:
     - List[str]: All the path to the model on system.
