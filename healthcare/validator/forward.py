@@ -52,7 +52,6 @@ async def forward(self):
 
     # Download models.
     responses = await download_models(self, uids = miner_uids, hotkeys = miner_hotkeys)
-    bt.logging.info(f"{responses}")
 
     # Adjust the scores based on downloaded models.
     model_paths = [response["local_dir"] for response in responses]
