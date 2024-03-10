@@ -54,10 +54,10 @@ async def download(
     - hotkey (str): The hotkey of miner.
 
     Returns:
-    - dict: {The path of the model on the system, Block of commitment used to calculate commit time}
+    - dict: {The path of the model on the system, Block of commitment used to calculate commit time, The repo id of the model on hugging face}
     """
     local_dir = os.path.join(BASE_DIR, "healthcare/models/validator", str(uid))
-    response = {"local_dir" : local_dir, "block" : float('inf')}
+    response = {"local_dir" : local_dir, "block" : float('inf'), "repo_id" : ""}
     try:
         # Retrieve miner's latest metadata from the chain.
         chain = Chain(self.config.netuid, self.subtensor, hotkey = hotkey)
@@ -67,7 +67,6 @@ async def download(
         bt.logging.info(f"⏬ Downloading the model of miner {uid} ...")
 
         block = commitdata["block"] # Block of the commitment
-        response["block"] = block
         commitment = commitdata["info"]["fields"][0]
         hex_data = commitment[list(commitment.keys())[0]][2:]
         chain_str = bytes.fromhex(hex_data).decode()
@@ -76,6 +75,9 @@ async def download(
         split_str_list = chain_str.split(" ")
         repo_id = split_str_list[0]
         commit_hash = split_str_list[1]
+
+        response["block"] = block
+        response["repo_id"] = repo_id
 
         # Download the model
         cache_dir = os.path.join(BASE_DIR, "healthcare/models/validator/cache")

@@ -103,7 +103,8 @@ def get_rewards(
     model_paths: List[str],
     uids: torch.LongTensor,
     ips: List[str],
-    commit_blocks: List[int]
+    commit_blocks: List[int],
+    repo_ids: List[str]
 ) -> torch.FloatTensor:
     """
     Returns a tensor of rewards for the given models.
@@ -113,6 +114,7 @@ def get_rewards(
     - uids (torch.LongTensor): A list of uids.
     - ips (List[str]): A list of ip addresses.
     - commit_blocks (List[int]): A list of block number of commitment.
+    - repo_ids (List[str]): A list of repo id of the model on hugging face.
 
     Returns:
     - torch.FloatTensor: A tensor of rewards for the given models.
@@ -132,7 +134,10 @@ def get_rewards(
 
     # Assign ranks to the sorted indices
     for rank, pair in enumerate(sorted_indices):
-        ranks[pair[0]] = rank
+        idx = pair[0]
+        ranks[idx] = rank
+        if rank and repo_ids[idx] == repo_ids[idx - 1]:
+            ranks[idx] = -1
 
     # Calculate rewards
     rewards = [] # A list to store rewards
@@ -141,7 +146,7 @@ def get_rewards(
         count_miners_same_ip = ip_counts[ips[idx]] # Count of miners with the same ip address
         rank = ranks[idx] # Rank of the model
 
-        if loss_of_model == float('inf') or commit_blocks[idx] == float('inf'):
+        if rank == -1 or loss_of_model == float('inf') or commit_blocks[idx] == float('inf'):
             reward = 0
         elif rank == 0:
             reward = weight_best_miner

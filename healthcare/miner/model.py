@@ -246,7 +246,6 @@ class ModelTrainer:
             return
 
         model_directory = os.path.join(BASE_DIR, 'healthcare/models', self.model_type)
-        bt.logging.info(f"{self.config.netuid}, {self.neuron.wallet}")
         chain = Chain(self.config.netuid, self.neuron.subtensor, self.neuron.wallet)
 
         upload_callback = UploadModelCallback(
