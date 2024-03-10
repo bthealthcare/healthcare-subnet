@@ -27,23 +27,8 @@ class Request(bt.Synapse):
     the miner and the validator.
 
     Attributes:
-    - hf_link: A link of the huggingface model. # username/model_type
-    - key: A string value to decrypt the model.
+    - version: The current version of validator.
     """
 
     # Required request output, filled by recieving axon.
-    hf_link: str = ""
     version: str = ""
-    token: str = ""
-
-    def deserialize(self) -> dict:
-        """
-        Deserialize the output. This method retrieves the response from
-        the miner in the form of output_text, deserializes it and returns it
-        as the output of the dendrite.query() call.
-
-        Returns:
-        >>> List[str]: The deserialized response, which in this case is the value of [hf_link, token].
-        """
-        
-        return {'hf_link': self.hf_link, 'token':self.token}

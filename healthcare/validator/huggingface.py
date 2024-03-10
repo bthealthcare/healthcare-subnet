@@ -17,13 +17,16 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+import asyncio
 import shutil
 import sys
 import bittensor as bt
+import torch
 from contextlib import contextmanager
 from huggingface_hub import snapshot_download, HfApi
 from constants import BASE_DIR
 from typing import List
+from healthcare.utils.chain import Chain
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -38,60 +41,76 @@ def suppress_stdout_stderr():
         finally:
             sys.stdout, sys.stderr = old_stdout, old_stderr
 
-def download(self, uid, response) -> str:
+async def download(
+    self,
+    uid: int,
+    hotkey: str
+) -> dict:
     """
-    Download the model of repo_url.
+    Download the miner's model from hugging face.
 
     Args:
-    - response (dict): {The link of model, Token}
+    - uid (int): The uid of miner.
+    - hotkey (str): The hotkey of miner.
 
     Returns:
-    - str: The path to the model on system.
+    - dict: {The path of the model on the system, Block of commitment used to calculate commit time, The repo id of the model on hugging face}
     """
-    repo_id = response['hf_link']
-    token = response['token']
-    empty_response = ["", ""]
-
-    if not token:
-        return empty_response
-
-    # Get hugging face username from the token
+    local_dir = os.path.join(BASE_DIR, "healthcare/models/validator", str(uid))
+    response = {"local_dir" : local_dir, "block" : float('inf'), "repo_id" : ""}
     try:
-        api = HfApi()
-        username = api.whoami(token)["name"]
-    except Exception as e:
-        return empty_response
-    
-    # Download the model
-    try:
-        repo_url = username + "/" + repo_id
-        local_dir = os.path.join(BASE_DIR, "healthcare/models/validator", repo_url)
+        # Retrieve miner's latest metadata from the chain.
+        chain = Chain(self.config.netuid, self.subtensor, hotkey = hotkey)
+        commitdata = await chain.retrieve_metadata()
+        if not commitdata:
+            return response
+        bt.logging.info(f"⏬ Downloading the model of miner {uid} ...")
+
+        block = commitdata["block"] # Block of the commitment
+        commitment = commitdata["info"]["fields"][0]
+        hex_data = commitment[list(commitment.keys())[0]][2:]
+        chain_str = bytes.fromhex(hex_data).decode()
+
+        # Get the repo_id and commit hash from the commitdata
+        split_str_list = chain_str.split(" ")
+        repo_id = split_str_list[0]
+        commit_hash = split_str_list[1]
+
+        response["block"] = block
+        response["repo_id"] = repo_id
+
+        # Download the model
         cache_dir = os.path.join(BASE_DIR, "healthcare/models/validator/cache")
         with suppress_stdout_stderr():
-            snapshot_download(repo_id = repo_url, local_dir = local_dir, token = os.getenv('ACCESS_TOKEN'), cache_dir = cache_dir)
+            snapshot_download(repo_id = repo_id, revision = commit_hash, local_dir = local_dir, cache_dir = cache_dir)
         bt.logging.info(f"✅ Successfully downloaded the model of miner {uid}.")
-        return [local_dir, repo_url]
     except Exception as e:
         # bt.logging.error(f"❌ Error occured while downloading the model of miner {uid} : {e}")
-        return empty_response
+        return response
+    return response
 
-def download_models(
+async def download_models(
     self,
-    uids: List[int],
-    responses: List[dict],
+    uids: torch.LongTensor,
+    hotkeys: List[str]
 ) -> List[str]:
     """
     Downloads models from huggingface.
 
     Args:
-    - responses (dict): A list of responses from the miner. (e.g. username/repo_name)
+    - uids (torch.LongTensor): A list of uids of the miner.
+    - hotkeys (str): A list of hotkeys of the miner.
 
     Returns:
     - List[str]: All the path to the model on system.
 
     """
     bt.logging.info(f"⏬ Downloading models ...")
-    return [download(self, uids[idx], response) for idx, response in enumerate(responses)]
+    responses = [
+        await download(self, uid.item(), hotkeys[idx])
+        for idx, uid in enumerate(uids)
+    ]
+    return responses
 
 def remove_models(
     self,
@@ -102,7 +121,7 @@ def remove_models(
     """
     
     try:
-        local_dir = os.path.join(BASE_DIR, "healthcare/models/validator")
+        local_dir = os.path.join(BASE_DIR, "healthcare/models/validator/cache")
         shutil.rmtree(local_dir)
     except Exception as e:
         return
