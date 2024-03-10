@@ -44,12 +44,16 @@ def suppress_stdout_stderr():
         finally:
             sys.stdout, sys.stderr = old_stdout, old_stderr
 
-def get_loss(model_paths: List[str], uids: List[int]):
+def get_loss(
+    model_paths: List[str],
+    uids: torch.LongTensor
+) -> List[float]:
     """
     This method returns the loss value for the model, which is used to update the miner's score.
 
     Args:
     - model_paths (List[str]): The path of models.
+    - uids (torch.LongTensor): The uid of models.
 
     Returns:
     - List[float]: The loss value for the models.
@@ -97,7 +101,7 @@ def get_loss(model_paths: List[str], uids: List[int]):
 def get_rewards(
     self,
     model_paths: List[str],
-    uids: List[int],
+    uids: torch.LongTensor,
     ips: List[str],
     commit_blocks: List[int]
 ) -> torch.FloatTensor:
@@ -106,7 +110,7 @@ def get_rewards(
 
     Args:
     - model_paths (List[str]): A list of path to models.
-    - uids (List[int]): A list of uids.
+    - uids (torch.LongTensor): A list of uids.
     - ips (List[str]): A list of ip addresses.
     - commit_blocks (List[int]): A list of block number of commitment.
 

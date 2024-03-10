@@ -75,26 +75,6 @@ class Miner(BaseMinerNeuron):
         The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
-        
-        load_dotenv()
-
-        # Get the caller stake
-        caller_uid = self.metagraph.hotkeys.index(
-            synapse.dendrite.hotkey
-        )  # Get the caller index.
-        bt.logging.info(f"UID {caller_uid} : v{synapse.version}")
-        
-        access_token = os.getenv('ACCESS_TOKEN')
-        if not access_token:
-            bt.logging.error(f"❌ Define ACCESS_TOKEN in .env file.")
-            return synapse
-
-        api = HfApi()
-        username = api.whoami(access_token)["name"]
-
-        synapse.hf_link = os.getenv('REPO_ID')
-        synapse.token = access_token
-
         return synapse
 
     async def blacklist(

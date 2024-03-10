@@ -132,7 +132,7 @@ class BaseMinerNeuron(BaseNeuron):
         Starts the miner's operations in a separate background thread.
         This is useful for non-blocking operations.
         """
-        trainer = ModelTrainer(self.config, self.wallet.hotkey.ss58_address)
+        trainer = ModelTrainer(self)
         if not self.is_running:
             bt.logging.debug("Starting miner in background thread.")
             self.should_exit = False

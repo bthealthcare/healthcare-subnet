@@ -17,29 +17,25 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
-import re
-import shutil
 import sys
+import time
+import asyncio
 from contextlib import contextmanager
-import tempfile
 import numpy as np
 import tensorflow as tf
-import gc
 import multiprocessing
 from keras import backend as K
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.applications import VGG16, ResNet50, EfficientNetB0, MobileNet
-from tensorflow.keras.preprocessing import image
-from tensorflow.keras.preprocessing.image import load_img, img_to_array
 from tensorflow.keras.models import Sequential, load_model, Model
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, GlobalAveragePooling2D
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
-from sklearn.model_selection import train_test_split
-from huggingface_hub import HfApi, upload_file, HfFolder
+from tensorflow.keras.callbacks import EarlyStopping
+from huggingface_hub import HfApi, upload_file, HfFolder, update_repo_visibility
 
 import bittensor as bt
 from healthcare.dataset.dataset import load_dataset, load_and_preprocess_image
+from healthcare.utils.chain import Chain
 from constants import BASE_DIR, ALL_LABELS
 from dotenv import load_dotenv
 load_dotenv()
@@ -57,18 +53,19 @@ def suppress_stdout_stderr():
             sys.stdout, sys.stderr = old_stdout, old_stderr
 
 class UploadModelCallback(Callback):
-    def __init__(self, monitor, model_directory, access_token):
+    def __init__(self, monitor, model_directory, access_token, chain):
         self.monitor = monitor
         self.best = float('inf')
         self.model_directory = model_directory
         self.access_token = access_token
+        self.chain = chain
         HfFolder.save_token(access_token)
         try:
             load_dotenv()
             api = HfApi()
             username = api.whoami(access_token)["name"]
-            repo_url = username + "/" + os.getenv('REPO_ID')
-            api.create_repo(token=access_token, repo_id=self.repo_url, exist_ok = True)
+            self.repo_id = username + "/" + os.getenv('REPO_ID')
+            api.create_repo(token=access_token, repo_id=self.repo_id, exist_ok = True)
         except Exception as e:
             bt.logging.error(f"❌ Error occured while creating a repository : {e}")
 
@@ -83,53 +80,54 @@ class UploadModelCallback(Callback):
             HfFolder.save_token(self.access_token)
             try:
                 # Make the repository as private before uploading
-                update_repo_visibility(repo_id, private = True)
+                update_repo_visibility(self.repo_id, private = True)
 
                 # Upload the model to hugging face
-                for root, dirs, files in os.walk(model_local_dir):
+                for root, dirs, files in os.walk(self.model_directory):
                     for file in files:
                         # Generate the full path and then remove the base directory part
                         full_path = os.path.join(root, file)
-                        relative_path = os.path.relpath(full_path, model_local_dir)
+                        relative_path = os.path.relpath(full_path, self.model_directory)
                         with suppress_stdout_stderr():
                             upload_file(
                                 path_or_fileobj=full_path,
                                 path_in_repo=relative_path,
-                                repo_id=repo_id
+                                repo_id=self.repo_id
                             )
-                print(f"✅ Best model uploaded at {repo_id}")
+                bt.logging.info(f"✅ Best model uploaded at {self.repo_id}")
 
                 # Retrieve the latest commit information
                 api = HfApi()
-                repo_info = api.repo_info(repo_id=repo_id, token=access_token)
+                repo_info = api.repo_info(repo_id=self.repo_id, token=self.access_token)
                 last_commit_hash = repo_info.sha
                 
                 # Push the metadata to the chain
-                data = " ".join([repo_id, last_commit_hash])
+                data = " ".join([self.repo_id, last_commit_hash])
+                bt.logging.info(f"{data}")
                 while True:
                     try:
-                        chain = Chain(subnet_uid, subtensor, wallet)
-                        await chain.store_metadata(data)
-                        print("✅ Stored the model to the chain.")
+                        asyncio.run(self.chain.store_metadata(data))
+                        bt.logging.info("✅ Stored the model to the chain.")
                         break
                     except Exception as e:
-                        print(f"{e}")
-                        time.sleep(5)
+                        bt.logging.info(f"❌ Error occured while pushing the model to chain : {e}")
+                        time.sleep(12)
                         continue
 
             except Exception as e:
                 print(f"❌ Error occured while pushing the model : {e}")
             
             # Make the repository as public
-            update_repo_visibility(repo_id, private = False)
+            update_repo_visibility(self.repo_id, private = False)
 
 class ModelTrainer:
-    def __init__(self, config):
-        self.config = config
-        user_input_model_type = config.model_type.lower()
+    def __init__(self, neuron):
+        self.neuron = neuron
+        self.config = neuron.config
+        user_input_model_type = self.config.model_type.lower()
         self.model_type = user_input_model_type if user_input_model_type in ['vgg', 'res', 'efficient', 'mobile', 'vit'] else 'cnn'
-        self.device = config.device
-        self.training_mode = config.training_mode.lower()
+        self.device = self.config.device
+        self.training_mode = self.config.training_mode.lower()
 
     def generate_data(self, image_paths, labels, batch_size):
         num_samples = len(image_paths)
@@ -249,12 +247,14 @@ class ModelTrainer:
             return
 
         model_directory = os.path.join(BASE_DIR, 'healthcare/models', self.model_type)
+        bt.logging.info(f"{self.config.netuid}, {self.neuron.wallet}")
+        chain = Chain(self.config.netuid, self.neuron.subtensor, self.neuron.wallet)
 
         upload_callback = UploadModelCallback(
-            self,
             monitor='loss',
             model_directory=model_directory,
             access_token=access_token,
+            chain = chain
         )
 
         # Load required details from dataframe and define model architecture

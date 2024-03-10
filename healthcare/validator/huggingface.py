@@ -17,9 +17,11 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+import asyncio
 import shutil
 import sys
 import bittensor as bt
+import torch
 from contextlib import contextmanager
 from huggingface_hub import snapshot_download, HfApi
 from constants import BASE_DIR
@@ -39,7 +41,11 @@ def suppress_stdout_stderr():
         finally:
             sys.stdout, sys.stderr = old_stdout, old_stderr
 
-def download(self, uid, hotkey) -> dict:
+async def download(
+    self,
+    uid: int,
+    hotkey: str
+) -> dict:
     """
     Download the miner's model from hugging face.
 
@@ -55,6 +61,9 @@ def download(self, uid, hotkey) -> dict:
         # Retrieve miner's latest metadata from the chain.
         chain = Chain(self.config.netuid, self.subtensor, hotkey = hotkey)
         commitdata = await chain.retrieve_metadata()
+        if not commitdata:
+            return empty_response
+        bt.logging.info(f"⏬ Downloading the model of miner {uid} ...")
 
         block = commitdata["block"] # Block of the commitment
         commitment = commitdata["info"]["fields"][0]
@@ -66,28 +75,27 @@ def download(self, uid, hotkey) -> dict:
         repo_id = split_str_list[0]
         commit_hash = split_str_list[1]
 
-
         # Download the model
-        local_dir = os.path.join(BASE_DIR, "healthcare/models/validator", uid)
+        local_dir = os.path.join(BASE_DIR, "healthcare/models/validator", str(uid))
         cache_dir = os.path.join(BASE_DIR, "healthcare/models/validator/cache")
         with suppress_stdout_stderr():
             snapshot_download(repo_id = repo_id, revision = commit_hash, local_dir = local_dir, cache_dir = cache_dir)
         bt.logging.info(f"✅ Successfully downloaded the model of miner {uid}.")
-        return {local_dir, block}
+        return {"local_dir" : local_dir, "block" : block}
     except Exception as e:
         bt.logging.error(f"❌ Error occured while downloading the model of miner {uid} : {e}")
         return empty_response
 
-def download_models(
+async def download_models(
     self,
-    uids: List[int],
+    uids: torch.LongTensor,
     hotkeys: List[str]
 ) -> List[str]:
     """
     Downloads models from huggingface.
 
     Args:
-    - uids (int): A list of uids of the miner.
+    - uids (torch.LongTensor): A list of uids of the miner.
     - hotkeys (str): A list of hotkeys of the miner.
 
     Returns:
@@ -95,7 +103,11 @@ def download_models(
 
     """
     bt.logging.info(f"⏬ Downloading models ...")
-    return [download(self, uid, hotkeys[idx]) for idx, uid in uids]
+    responses = [
+        await download(self, uid.item(), hotkeys[idx])
+        for idx, uid in enumerate(uids)
+    ]
+    return responses
 
 def remove_models(
     self,
