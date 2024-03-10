@@ -44,42 +44,6 @@ def suppress_stdout_stderr():
         finally:
             sys.stdout, sys.stderr = old_stdout, old_stderr
 
-def get_last_commit_time(model_paths: List[str]):
-    """
-    This method returns the last commit time of the models.
-
-    Args:
-    - model_paths (List[str]): The path of models.
-
-    Returns:
-    - List[int]: The last commit time of the models in the form of integer.
-    """
-    last_commit_time = []
-    for model_path in model_paths:
-        if not model_path:
-            last_commit_time.append(float('inf'))
-            continue
-        try:
-            api_url = f"https://huggingface.co/api/models/{model_path}"
-            response = requests.get(api_url)
-
-            if response.status_code == 200:
-                model_info = response.json()
-                commit_time = model_info.get("lastModified")
-                
-                # Parse the date string to a datetime object
-                date_obj = datetime.fromisoformat(commit_time[:-1])  # Removing 'Z' at the end
-
-                # Convert the datetime object to UNIX timestamp (integer)
-                timestamp = int(date_obj.timestamp())
-
-                last_commit_time.append(timestamp)
-            else:
-                last_commit_time.append(float('inf'))
-        except Exception as e:
-            last_commit_time.append(float('inf'))
-    return last_commit_time
-
 def get_loss(model_paths: List[str], uids: List[int]):
     """
     This method returns the loss value for the model, which is used to update the miner's score.
@@ -135,7 +99,7 @@ def get_rewards(
     model_paths: List[str],
     uids: List[int],
     ips: List[str],
-    hug_paths: List[str]
+    commit_blocks: List[int]
 ) -> torch.FloatTensor:
     """
     Returns a tensor of rewards for the given models.
@@ -144,14 +108,13 @@ def get_rewards(
     - model_paths (List[str]): A list of path to models.
     - uids (List[int]): A list of uids.
     - ips (List[str]): A list of ip addresses.
-    - hug_paths (List[str]): A list of hugging face urls.
+    - commit_blocks (List[int]): A list of block number of commitment.
 
     Returns:
     - torch.FloatTensor: A tensor of rewards for the given models.
     """
     bt.logging.info(f"♏ Evaluating models ...")
     
-    commit_time_of_models = get_last_commit_time(hug_paths) # Last commit time of models
     loss_of_models = get_loss(model_paths, uids) # Loss values of models
     ip_counts = Counter(ips) # Count occurrences of each ip
     weight_best_miner = 30 # Weight for the best miner
@@ -160,7 +123,7 @@ def get_rewards(
 
     # Rank of models
     loss_indices = list(enumerate(loss_of_models)) # Combine loss values with their corresponding indices
-    sorted_indices = sorted(loss_indices, key=lambda x: (x[1], commit_time_of_models[x[0]])) # Loss first, then time
+    sorted_indices = sorted(loss_indices, key=lambda x: (x[1], commit_blocks[x[0]])) # Loss first, then time
     ranks = {} # A dictionary to store ranks
 
     # Assign ranks to the sorted indices
@@ -174,7 +137,7 @@ def get_rewards(
         count_miners_same_ip = ip_counts[ips[idx]] # Count of miners with the same ip address
         rank = ranks[idx] # Rank of the model
 
-        if loss_of_model == float('inf') or commit_time_of_models[idx] == float('inf'):
+        if loss_of_model == float('inf') or commit_blocks[idx] == float('inf'):
             reward = 0
         elif rank == 0:
             reward = weight_best_miner

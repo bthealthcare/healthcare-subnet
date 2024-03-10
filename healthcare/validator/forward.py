@@ -39,27 +39,24 @@ async def forward(self):
     miner_selection_size = min(available_axon_size, self.config.neuron.sample_size)
     miner_uids = get_random_uids(self, k=miner_selection_size)
     miner_axons = [self.metagraph.axons[uid] for uid in miner_uids]
+    miner_hotkeys = [axon.wallet.hotkey.ss58_address for axon in miner_axons]
     miner_ips = [axon.ip for axon in miner_axons]
 
     # The dendrite client queries the network.
-    responses = self.dendrite.query(
+    self.dendrite.query(
         # Send the query to selected miner axons in the network.
         axons=miner_axons,
         synapse=Request(version = get_version()),
         deserialize=True,
     )
 
-    # Exit if the responses is empty
-    if not responses:
-        return
+    # Download models.
+    responses = download_models(self, uids = miner_uids, hotkeys = miner_hotkeys)
 
-    # Download models
-    paths = download_models(self, uids = miner_uids, responses = responses)
-
-    # Adjust the scores based on responses from miners
-    model_paths = [path[0] for path in paths]
-    hug_paths = [path[1] for path in paths]
-    rewards = get_rewards(self, model_paths=model_paths, uids = miner_uids, ips = miner_ips, hug_paths = hug_paths)
+    # Adjust the scores based on downloaded models.
+    model_paths = [response["local_dir"] for response in responses]
+    commit_blocks = [response["block"] for response in responses]
+    rewards = get_rewards(self, model_paths=model_paths, uids = miner_uids, ips = miner_ips, commit_blocks = commit_blocks)
 
     # Remove cache
     remove_models(self)
