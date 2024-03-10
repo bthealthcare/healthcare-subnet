@@ -56,16 +56,18 @@ async def download(
     Returns:
     - dict: {The path of the model on the system, Block of commitment used to calculate commit time}
     """
-    empty_response = {"local_dir" : "", "block" : float('inf')}
+    local_dir = os.path.join(BASE_DIR, "healthcare/models/validator", str(uid))
+    response = {"local_dir" : local_dir, "block" : float('inf')}
     try:
         # Retrieve miner's latest metadata from the chain.
         chain = Chain(self.config.netuid, self.subtensor, hotkey = hotkey)
         commitdata = await chain.retrieve_metadata()
         if not commitdata:
-            return empty_response
+            return response
         bt.logging.info(f"⏬ Downloading the model of miner {uid} ...")
 
         block = commitdata["block"] # Block of the commitment
+        response["block"] = block
         commitment = commitdata["info"]["fields"][0]
         hex_data = commitment[list(commitment.keys())[0]][2:]
         chain_str = bytes.fromhex(hex_data).decode()
@@ -76,15 +78,13 @@ async def download(
         commit_hash = split_str_list[1]
 
         # Download the model
-        local_dir = os.path.join(BASE_DIR, "healthcare/models/validator", str(uid))
         cache_dir = os.path.join(BASE_DIR, "healthcare/models/validator/cache")
         with suppress_stdout_stderr():
             snapshot_download(repo_id = repo_id, revision = commit_hash, local_dir = local_dir, cache_dir = cache_dir)
         bt.logging.info(f"✅ Successfully downloaded the model of miner {uid}.")
-        return {"local_dir" : local_dir, "block" : block}
     except Exception as e:
         bt.logging.error(f"❌ Error occured while downloading the model of miner {uid} : {e}")
-        return empty_response
+    return response
 
 async def download_models(
     self,

@@ -103,7 +103,6 @@ class UploadModelCallback(Callback):
                 
                 # Push the metadata to the chain
                 data = " ".join([self.repo_id, last_commit_hash])
-                bt.logging.info(f"{data}")
                 while True:
                     try:
                         asyncio.run(self.chain.store_metadata(data))
