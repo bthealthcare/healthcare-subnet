@@ -133,11 +133,14 @@ def get_rewards(
     ranks = {} # A dictionary to store ranks
 
     # Assign ranks to the sorted indices
+    prev_repos = []
     for rank, pair in enumerate(sorted_indices):
         idx = pair[0]
         ranks[idx] = rank
-        if rank and repo_ids[idx] == repo_ids[idx - 1]:
+        if repo_ids[idx] in prev_repos:
             ranks[idx] = -1
+        else:
+            prev_repos.append(repo_ids[idx])
 
     # Calculate rewards
     rewards = [] # A list to store rewards
