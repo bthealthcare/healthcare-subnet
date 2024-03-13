@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import copy
+import re
 import typing
 import tensorflow as tf
 import multiprocessing
