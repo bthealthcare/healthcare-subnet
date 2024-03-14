@@ -3,7 +3,8 @@ torch
 pandas
 Pillow
 torchvision
-tensorflow
+tensorflow==2.15.0
+keras==2.15.0
 pyOpenSSL
 cryptography
 scikit-learn
