@@ -93,7 +93,7 @@ def get_loss(
                 with suppress_stdout_stderr():
                     loss, accuracy = model.evaluate(np.array(x_input), np.array(y_output), verbose=0)
             except Exception as e:
-                # bt.logging.error(f"❌ Error occured while loading model : {e}")
+                bt.logging.error(f"❌ Error occured while loading model : {e}")
                 loss = float('inf')
         loss_of_models.append(loss)
     return loss_of_models
