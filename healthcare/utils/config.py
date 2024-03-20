@@ -179,6 +179,13 @@ def add_args(cls, parser):
         )
 
         parser.add_argument(
+            "--neuron.disable_set_weights",
+            action="store_true",
+            help="Disables setting weights.",
+            default=True,
+        )
+
+        parser.add_argument(
             "--num_epochs", 
             type = int, 
             default = -1, 
