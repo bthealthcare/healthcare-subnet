@@ -95,7 +95,7 @@ def get_loss(
             except Exception as e:
                 bt.logging.error(f"❌ Error occured while loading model : {e}")
                 loss = float('inf')
-        loss_of_models.append(loss)
+        loss_of_models.append(round(loss, 8))
     return loss_of_models
 
 def get_rewards(
