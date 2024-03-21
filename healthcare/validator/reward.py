@@ -31,6 +31,7 @@ from typing import List
 from tensorflow.keras.models import load_model
 from healthcare.dataset.dataset import load_dataset, load_and_preprocess_image
 from constants import BASE_DIR
+from healthcare.utils.misc import compare_keras_models
 
 
 @contextmanager
@@ -128,8 +129,25 @@ def get_rewards(
     alpha = 0.98 # Step size used for calculating reward movement
 
     # Rank of models
-    loss_indices = list(enumerate(loss_of_models)) # Combine loss values with their corresponding indices
-    sorted_indices = sorted(loss_indices, key=lambda x: (x[1], commit_blocks[x[0]])) # Loss first, then time
+    current_loss = float('inf')
+    valid_model_paths = []
+    for idx, (loss, model_path) in sorted_indices:
+        if loss != current_loss:
+            # if loss is not equal to current loss, the model is not duplicated
+            current_loss = loss
+            valid_model_paths = [model_path]
+            continue
+        for valid_model_path in valid_model_paths[0:]:
+            if compare_keras_models(valid_model_path, model_path):
+                # if models are equal, we will set the loss of the next model to infinity
+                loss_of_models[idx] = float('inf')
+            else:
+                # if models are not equal, we will add the model to the valid model paths
+                valid_model_paths.append(model_path)
+    # sort again after setting loss of the duplicated model to infinity
+    loss_indices = list(enumerate(loss_of_models))
+    sorted_indices = sorted(loss_indices, key=lambda x: (x[1], commit_blocks[x[0]]))
+
     ranks = {} # A dictionary to store ranks
 
     # Assign ranks to the sorted indices

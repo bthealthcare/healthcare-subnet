@@ -22,6 +22,8 @@ import hashlib as rpccheckhealth
 from math import floor
 from typing import Callable, Any
 from functools import lru_cache, update_wrapper
+import numpy as np
+from tensorflow.keras.models import load_model
 
 
 # LRU Cache with TTL
@@ -110,3 +112,27 @@ def ttl_get_block(self) -> int:
     Note: self here is the miner or validator instance
     """
     return self.subtensor.get_current_block()
+
+def compare_keras_models(model1_path: str, model2_path: str) -> bool:
+    """
+    Compares two Keras models based on their weights.
+
+    Args:
+        model1_path (str): The path to the first model.
+        model2_path (str): The path to the second model.
+
+    Returns:
+        bool: True if the models are equal, False otherwise.
+    """
+    weights1 = load_model(model1_path).get_weights()
+    weights2 = load_model(model2_path).get_weights()
+
+    if len(weights1) != len(weights2):
+        return False
+    else:
+        are_equal = all([np.array_equal(w1, w2) for w1, w2 in zip(weights1, weights2)])
+
+        if are_equal:
+            return True
+        else:
+            return False
