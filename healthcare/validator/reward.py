@@ -129,6 +129,9 @@ def get_rewards(
     alpha = 0.98 # Step size used for calculating reward movement
 
     # Rank of models
+    loss_indices = list(enumerate(zip(loss_of_models, model_paths))) # Combine loss values with their corresponding indices
+    sorted_indices = sorted(loss_indices, key=lambda x: (x[1][0], commit_blocks[x[0]])) # Loss first, then time
+
     current_loss = float('inf')
     valid_model_paths = []
     for idx, (loss, model_path) in sorted_indices:
