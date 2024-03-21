@@ -85,7 +85,7 @@ async def download(
             snapshot_download(repo_id = repo_id, revision = commit_hash, local_dir = local_dir, cache_dir = cache_dir)
         bt.logging.info(f"✅ Successfully downloaded the model of miner {uid}.")
     except Exception as e:
-        # bt.logging.error(f"❌ Error occured while downloading the model of miner {uid} : {e}")
+        bt.logging.error(f"❌ Error occured while downloading the model of miner {uid} : {e}")
         return response
     return response
 
