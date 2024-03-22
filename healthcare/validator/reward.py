@@ -95,7 +95,7 @@ def get_loss(
             except Exception as e:
                 bt.logging.error(f"❌ Error occured while loading model : {e}")
                 loss = float('inf')
-        loss_of_models.append(round(loss, 8))
+        loss_of_models.append(round(loss, 10))
     return loss_of_models
 
 def get_rewards(
@@ -124,7 +124,6 @@ def get_rewards(
     loss_of_models = get_loss(model_paths, uids) # Loss values of models
     ip_counts = Counter(ips) # Count occurrences of each ip
     weight_best_miner = 30 # Weight for the best miner
-    ip_limitation = 15 # Allowed maximum occurrences
     alpha = 0.98 # Step size used for calculating reward movement
 
     # Rank of models
@@ -146,7 +145,6 @@ def get_rewards(
     rewards = [] # A list to store rewards
 
     for idx, loss_of_model in enumerate(loss_of_models):
-        count_miners_same_ip = ip_counts[ips[idx]] # Count of miners with the same ip address
         rank = ranks[idx] # Rank of the model
 
         if rank == -1 or loss_of_model == float('inf') or commit_blocks[idx] == float('inf'):
@@ -156,9 +154,6 @@ def get_rewards(
         else:
             reward = alpha ** rank
 
-        # Decrease the reward of miners that exceeds ip limitation
-        if count_miners_same_ip > ip_limitation:
-            reward = reward * ip_limitation / count_miners_same_ip
         rewards.append(reward)
 
     return torch.FloatTensor(rewards)
