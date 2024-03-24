@@ -81,7 +81,7 @@ async def download(
 
         if commit_hash != str(repo_info.sha):
             response["block"] = float('inf')
-        else
+        else:
             response["block"] = block
         response["repo_id"] = repo_id
 
