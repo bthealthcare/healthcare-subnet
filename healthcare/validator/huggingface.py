@@ -75,8 +75,14 @@ async def download(
         split_str_list = chain_str.split(" ")
         repo_id = split_str_list[0]
         commit_hash = split_str_list[1]
+        
+        api = HfApi()
+        repo_info = api.repo_info(repo_id=repo_id)
 
-        response["block"] = block
+        if commit_hash != str(repo_info.sha):
+            response["block"] = float('inf')
+        else
+            response["block"] = block
         response["repo_id"] = repo_id
 
         # Download the model
